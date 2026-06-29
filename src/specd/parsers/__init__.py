@@ -8,11 +8,10 @@ Each parser module must provide:
 
 from specd.parsers import python
 
-PARSERS_BY_EXTENSION = {
-    ".py": python,
-}
+PARSERS = [python]
 
-
-def get_parser(extension):
-    """Return the parser module for a given file extension, or None."""
-    return PARSERS_BY_EXTENSION.get(extension)
+try:
+    from specd.parsers import javascript
+    PARSERS.append(javascript)
+except ImportError:
+    pass

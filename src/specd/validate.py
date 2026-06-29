@@ -142,7 +142,7 @@ def run_validation(specs_dir, tests_dir):
     Discovers test files by iterating over registered parsers and their
     file patterns. Returns 0 if all checks pass, 1 otherwise.
     """
-    from specd.parsers import PARSERS_BY_EXTENSION
+    from specd.parsers import PARSERS
 
     specs_dir = Path(specs_dir)
     tests_dir = Path(tests_dir)
@@ -150,7 +150,7 @@ def run_validation(specs_dir, tests_dir):
     specs = load_specs(specs_dir)
 
     test_entries = []
-    for parser in PARSERS_BY_EXTENSION.values():
+    for parser in PARSERS:
         for pattern in parser.FILE_PATTERNS:
             for test_file in sorted(tests_dir.rglob(pattern)):
                 test_entries.extend(

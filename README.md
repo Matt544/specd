@@ -8,6 +8,12 @@ Render Jinja2 spec templates and validate that tests cite spec items.
 pip install -e specd/
 ```
 
+For JavaScript/TypeScript test support (requires tree-sitter):
+
+```bash
+pip install -e "specd/[js]"
+```
+
 ## Usage
 
 ### Render templates
@@ -30,13 +36,15 @@ Validation checks three things:
 
 Spec files are `.md` files in the specs directory. Each line starting with `- ` is treated as a spec item.
 
-Tests cite spec items by including a line in their docstring in this form:
+Tests cite spec items by including a citation in this form:
 
 ```
 Spec: <verbatim spec item text> [<spec filename>]
 ```
 
-For example:
+### Python tests
+
+In Python, citations go in the test function's docstring:
 
 ```python
 def test_log_with_no_args():
@@ -45,6 +53,21 @@ def test_log_with_no_args():
     """
     ...
 ```
+
+### JavaScript/TypeScript tests
+
+In JS/TS, citations go in `//` comments inside the test body:
+
+```javascript
+test("logs with no args", () => {
+  // Spec: always log timestamp, status, and message [log.md]
+  ...
+});
+```
+
+Multiple citations are separate comment lines. Citations work inside `describe()` blocks at any nesting depth. `test()`, `it()`, and their `.skip`/`.only` variants are all supported. Test files must match `*.test.{js,jsx,ts,tsx}`.
+
+Supported frameworks: Jest, Vitest, Mocha, and any framework using the `test()`/`it()`/`describe()` API.
 
 Run validation:
 
