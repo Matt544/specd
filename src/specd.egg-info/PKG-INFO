@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: specd
+Version: 0.1.0
+Summary: Render Jinja2 spec templates and validate test/spec compliance.
+Requires-Python: >=3.10
+Requires-Dist: jinja2
+Requires-Dist: watchdog
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"

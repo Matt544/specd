@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "specd"
+version = "0.1.0"
+description = "Render Jinja2 spec templates and validate test/spec compliance."
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2",
+    "watchdog",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+specd = "specd.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
