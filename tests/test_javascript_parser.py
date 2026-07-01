@@ -335,6 +335,21 @@ class TestCitationExtraction:
         assert len(citations) == 1
         assert citations[0] == ("must validate input", "math.md")
 
+    def test_backslash_n_in_comment_stays_raw(self, tmp_path):
+        r"""\\n in a // comment is returned as raw bytes (5C 5C 6E)."""
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        # b"\\\\n" produces bytes 5C 5C 6E on disk (two backslashes + n).
+        (tests_dir / "math.test.js").write_bytes(
+            b'test("newline", () => {\n'
+            b'  // Spec: output ends with \\\\n [math.md]\n'
+            b'});\n'
+        )
+        entries = collect_test_entries(tests_dir / "math.test.js", tests_dir)
+        doc_bytes = entries[0].docstring.encode("utf-8")
+        # Raw \\n: two backslash bytes followed by n (5C 5C 6E).
+        assert bytes([0x5C, 0x5C, 0x6E]) in doc_bytes
+
     def test_long_citation(self, tmp_path):
         """A long spec item (~264 chars) is captured in full."""
         long_item = (

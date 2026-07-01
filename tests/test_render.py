@@ -1,16 +1,16 @@
 """
 Tests for spec template rendering.
 
-Most tests use pytest's tmp_path fixture for isolation. The demo test
-verifies the committed template/spec pair under test_specs/templates/
-and test_specs/specs/ — those files serve as living documentation.
+Most tests use pytest's tmp_path fixture for isolation. The live samples
+tests verify the committed template/spec pair under live_samples/specs/
+— those files serve as living documentation.
 """
 
 from pathlib import Path
 
 from specd.render import GENERATED_MARKER, render_all
 
-TEST_SPECS_DIR = Path(__file__).parent
+LIVE_SAMPLES_DIR = Path(__file__).parent / "live_samples"
 
 
 def _setup(tmp_path, templates):
@@ -223,43 +223,41 @@ class TestEdgeCases:
         assert "{comma separated matching keys}" in result
 
 
-class TestDemo:
+class TestLiveSamplesRendering:
 
-    def test_demo_template_renders_to_committed_spec(self):
+    def test_template_renders_to_committed_spec(self):
         """
-        The committed demo template renders to match the committed demo
-        spec. This test also regenerates the spec, so that both files
-        stay in sync and serve as readable documentation of how a
-        template produces a spec.
+        The committed template renders to match the committed spec.
+        This test also regenerates the spec, so that both files stay
+        in sync and serve as readable documentation of how a template
+        produces a spec.
         """
-        templates_dir = TEST_SPECS_DIR / "templates"
-        specs_dir = TEST_SPECS_DIR / "specs"
+        templates_dir = LIVE_SAMPLES_DIR / "specs" / "templates"
+        specs_dir = LIVE_SAMPLES_DIR / "specs" / "gen"
         render_all(templates_dir, specs_dir)
 
-        template_path = templates_dir / "demo.spec.specd.md"
-        spec_path = specs_dir / "demo.spec.md"
+        template_path = templates_dir / "sample.spec.specd.md"
+        spec_path = specs_dir / "sample.spec.md"
 
-        assert template_path.exists(), "Demo template is missing"
-        assert spec_path.exists(), "Demo spec was not generated"
+        assert template_path.exists(), "Sample template is missing"
+        assert spec_path.exists(), "Sample spec was not generated"
 
         result = spec_path.read_text(encoding="utf-8")
 
-        assert result.startswith(GENERATED_MARKER + "\n\n# Demo")
-        assert "(re: `frequency`)" in result
-        assert "(re: `data`)" in result
-        assert "(re: `datum`)" in result
+        assert result.startswith(GENERATED_MARKER + "\n\n")
+        assert "# Sample" in result
 
-    def test_demo_spec_lines_are_unique_per_method(self):
+    def test_spec_lines_are_unique_per_command(self):
         """
-        Each method section in the demo spec has its own unique lines,
-        demonstrating that the macro stamps out independently citable
-        spec items.
+        Each command section in the sample spec has its own unique
+        lines, demonstrating that the macro stamps out independently
+        citable spec items.
         """
-        spec_path = TEST_SPECS_DIR / "specs" / "demo.spec.md"
+        spec_path = LIVE_SAMPLES_DIR / "specs" / "gen" / "sample.spec.md"
         result = spec_path.read_text(encoding="utf-8")
         lines = [line for line in result.splitlines() if line.startswith("- ")]
 
         assert len(lines) == len(set(lines)), (
             "Spec lines are not all unique — the macro should produce "
-            "distinct lines per method"
+            "distinct lines per command"
         )

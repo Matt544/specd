@@ -10,7 +10,10 @@ This policy assumes that:
 The test-writer will not need to create those spec files; they should exist before writing tests.
 
 ## Rules
-1. Tests refer to spec items from spec files by including a line or lines in their docstrings in this form: `Spec: <the untruncated verbatim spec line item> [the_relevant_file.md]`
+1. Tests refer to spec items from spec files by including a citation in the form:
+   `Spec: <the untruncated verbatim spec line item> [the_relevant_file.md]`
+   - In Python, citations go in the test function's docstring
+   - In JavaScript/TypeScript, citations go in `//` comments inside the test body
 2. Every item in the specs must be associated with at least one test
 3. Every test must relate to at least one item in the specs
 4. Multiple tests can relate to the same spec item
@@ -18,19 +21,24 @@ The test-writer will not need to create those spec files; they should exist befo
 6. Only add a spec item to a test if the test is aimed at testing the item, not if it merely tests something incidentally
 
 **For clarity:** These rules do not mandate that the structure of spec files must match the structure of test files or code modules.
-- One spec file can cover functionality that is implemented by more than one python file and that has more than one test file. 
+- One spec file can cover functionality that is implemented by more than one file and that has more than one test file.
 - And the tests in one test file can relate to specs from multiple different spec files, where appropriate, though that will be less common.
 
-# Conventions
-- Always represent newlines in program output with two `\` escape characters: i.e. `like "\\n".`
+## Conventions
+- When citing spec items that contain `\\n` (a literal backslash-n representing a newline in program output), write `\\n` in the citation, regardless of language. All parsers extract raw source text with no escape processing, and `specd validate` compares raw text on both sides.
+  - **Python docstrings**: write `\\n` (two backslashes in the source). The Python parser extracts the raw source characters from the docstring, bypassing Python's string escape processing.
+  - **JS/TS comments**: write `\\n` (two backslashes in the source). Comments have no escape processing, so the text passes through as-is.
 
 ## Enforcement
-Check for compliance by running `tests/validate_test_spec_matching.py` from the project root:
+Check for compliance by running `specd validate` from the project root:
 ```
-python tests/validate_test_spec_matching.py
+specd validate
+specd validate -s path/to/specs --tests path/to/tests
 ```
 
-It is a standalone reporting script, not another test. The script checks three things: tests without valid spec citations, spec items without related tests, and phantom citations (citations whose text does not appear verbatim in the named spec file). It exits with code 1 if any violations are found.
+`specd validate` checks three things: tests without valid spec citations, spec items without related tests, and phantom citations (citations whose text does not appear verbatim in the named spec file). It exits with code 1 if any violations are found.
+
+Supported test languages: Python (`test_*.py`) and JavaScript/TypeScript (`*.test.{js,jsx,ts,tsx}`).
 
 ## Example
 ### Spec for logging
@@ -40,26 +48,40 @@ It is a standalone reporting script, not another test. The script checks three t
 - exit 0 on success
 - exits non-zero on error
 
-### tests for logging
+### Python tests for logging
 ```python
 def test_log_w_no_args():
     """
     Spec: always log timestamp, status, and message [log.md]
     """
     # ...
-  
+
 def test_log_case_id_w_arg():
     """
     Spec: optionally accept a command line arg for case_id and script [log.md]
     """
     # ...
-  
+
 def test_log_script_w_arg():
     """
     Spec: optionally accept a command line arg for case_id and script [log.md]
     """
     # ...
 # and so on...
+```
+
+### JavaScript/TypeScript tests for logging
+```javascript
+test("logs with no args", () => {
+  // Spec: always log timestamp, status, and message [log.md]
+  // ...
+});
+
+test("logs with case_id arg", () => {
+  // Spec: optionally accept a command line arg for case_id and script [log.md]
+  // ...
+});
+// and so on...
 ```
 
 In this example, the spec item "exit 0 on success" may only need one related test. But the spec item "exits non-zero on error" may have five related tests for five separate error paths. 

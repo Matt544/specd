@@ -1,0 +1,4 @@
+[tool.specd]
+templates = "specs/templates"
+specs = "specs/gen"
+tests = "tests"

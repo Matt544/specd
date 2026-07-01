@@ -88,3 +88,5 @@ tests = "path/to/tests"
 ```
 
 CLI flags take priority over `pyproject.toml`, which takes priority over the defaults.
+
+Note: `specd validate` reads specs from a single directory. If you use separate directories for templates and generated specs (e.g., `specs/templates/` and `specs/gen/`), hand-written spec files must also be placed in the configured `specs` directory so that validation can find them.

@@ -36,9 +36,7 @@ def load_specs(specs_dir):
             match = SPEC_ITEM_RE.match(line)
             if match:
                 raw = match.group(1).strip()
-                items.append(
-                    raw.encode("raw_unicode_escape").decode("unicode_escape")
-                )
+                items.append(raw)
         specs[spec_file.name] = items
     return specs
 

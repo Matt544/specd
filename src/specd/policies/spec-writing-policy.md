@@ -12,7 +12,7 @@ Spec files should:
 Spec files live under `specs/` at the project root.
 
 # Conventions
-- Always represent newlines in program output with two `\` escape characters: i.e. `like "\\n".`
+- Always represent newlines in program output using `\\n` (a literal backslash followed by `n`) in spec item text. `specd validate` compares spec item text to test citations as raw text — no escape processing is applied on either side. Test citations must use the same `\\n` convention, regardless of language.
 - Group spec items in a way that aids understanding, using headings. Headings are not part of the spec that must be referenced in tests. They are for the benefit of readers, only.
 
 ## The purpose
@@ -32,16 +32,16 @@ The benefits of spec files include that they:
 # Implementation notes
 
 ## Specs are a foundation
-Spec files will provide a touch point for subsequent steps in the deveopment process. They should be complete enough to ground an adequate test suite and set the scope of work for implementation. The implementor should not have to make assumptions about what essential functionality should be. 
+Spec files will provide a touch point for subsequent steps in the development process. They should be complete enough to ground an adequate test suite and set the scope of work for implementation. The implementor should not have to make assumptions about what essential functionality should be. 
 
 Make specs thorough with respect to interfaces and intended functionality. All observable behaviour of significance should be specced. For required inputs or preconditions, spec both the success behavior and the failure/error behavior.
 
-A separate test-writing policy mandates that all tests should be related to at least one spec item and will explicitly quote relevant spec items verbatim in their docstrings. Each spec item should be an accurate, focused, independent, and implementable description of some discrete element of the relevant functionality. Generally, statements that should be tested separately should be separate line items in the spec.
+A separate test-writing policy mandates that all tests should be related to at least one spec item and will explicitly quote relevant spec items verbatim in their citations. Each spec item should be an accurate, focused, independent, and implementable description of some discrete element of the relevant functionality. Generally, statements that should be tested separately should be separate line items in the spec.
 
 ## Specs should avoid constraining design
 Spec files should generally be created before any code is written and before architectural and design decisions are made.
 
-They may contain some commitments about what resources will exist and what their interfaces will be, and those might have implecations for system design and architecture. But generally specs should avoid constrainging design, architecture or implementation decisions for project code or project tests any more than necessary to acheive the functionality specified. Agents implementing the specs should remain free to make design decisions that are right for the codebase. Similarly, spec file structure is not required to mirror other aspects of the project structure, files or modules.
+They may contain some commitments about what resources will exist and what their interfaces will be, and those might have implications for system design and architecture. But generally specs should avoid constraining design, architecture or implementation decisions for project code or project tests any more than necessary to achieve the functionality specified. Agents implementing the specs should remain free to make design decisions that are right for the codebase. Similarly, spec file structure is not required to mirror other aspects of the project structure, files or modules.
 
 The specs are permitted and expected to evolve. They should improve over time as users and agents learn about the system through its iterative development. Spec titles, file names, intro lines, items, and item organization should all change whenever a change is appropriate. Spec items may be moved between different files; and spec files may be combined or split apart as the project evolves. Such changes should not automatically mandate matching changes in project code implementation. Such changes will sometimes force downstream changes to test suites that are coupled to the specs, but that is by design and encourages agents and users to do the work of keeping tests relevant to the evolving specs. What matters is that the code implements all relevant spec items, not that the code does so within particular design constraints.
 

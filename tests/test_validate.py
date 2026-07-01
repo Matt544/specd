@@ -4,7 +4,6 @@ Tests for the spec/test compliance validator.
 
 from pathlib import Path
 
-from specd.parsers.python import collect_test_entries
 from specd.validate import (
     TestEntry,
     load_specs,
@@ -12,6 +11,8 @@ from specd.validate import (
     run_validation,
     validate,
 )
+
+LIVE_SAMPLES_DIR = Path(__file__).parent / "live_samples"
 
 
 def _write_spec(specs_dir, filename, items):
@@ -65,57 +66,19 @@ class TestLoadSpecs:
         assert "notes.txt" not in specs
         assert "real.md" in specs
 
-
-class TestCollectTestEntries:
-
-    def test_collects_test_functions(self, tmp_path):
-        """Top-level test_ functions are collected."""
-        tests_dir = tmp_path / "tests"
-        tests_dir.mkdir()
-        _write_test(
-            tests_dir,
-            "test_example.py",
-            [("test_one", "Spec: item [s.md]")],
+    def test_backslash_n_stored_raw(self, tmp_path):
+        r"""\\n in a spec item is stored as raw characters, not transformed."""
+        specs_dir = tmp_path / "specs"
+        specs_dir.mkdir()
+        # b"\\\\n" produces bytes 5C 5C 6E on disk (two backslashes + n).
+        (specs_dir / "spec.md").write_bytes(
+            b"# Spec\n\n- output ends with \\\\n\n"
         )
-        entries = collect_test_entries(
-            tests_dir / "test_example.py", tests_dir,
-        )
-        assert len(entries) == 1
-        assert "test_one" in entries[0].identifier
-
-    def test_collects_methods_in_classes(self, tmp_path):
-        """Test methods nested in classes are collected."""
-        tests_dir = tmp_path / "tests"
-        tests_dir.mkdir()
-        content = (
-            "class TestGroup:\n"
-            "    def test_nested(self):\n"
-            '        """Spec: item [s.md]"""\n'
-            "        pass\n"
-        )
-        (tests_dir / "test_grouped.py").write_text(
-            content, encoding="utf-8",
-        )
-        entries = collect_test_entries(
-            tests_dir / "test_grouped.py", tests_dir,
-        )
-        assert len(entries) == 1
-        assert "TestGroup::test_nested" in entries[0].identifier
-
-    def test_ignores_non_test_functions(self, tmp_path):
-        """Functions not starting with test_ are not collected."""
-        tests_dir = tmp_path / "tests"
-        tests_dir.mkdir()
-        _write_test(
-            tests_dir,
-            "test_example.py",
-            [("helper_func", None), ("test_real", "Spec: item [s.md]")],
-        )
-        entries = collect_test_entries(
-            tests_dir / "test_example.py", tests_dir,
-        )
-        assert len(entries) == 1
-        assert "test_real" in entries[0].identifier
+        specs = load_specs(specs_dir)
+        item = specs["spec.md"][0]
+        item_bytes = item.encode("utf-8")
+        # Must contain \\n as three bytes: 5C 5C 6E
+        assert bytes([0x5C, 0x5C, 0x6E]) in item_bytes
 
 
 class TestParseCitations:
@@ -146,7 +109,7 @@ class TestParseCitations:
 
 class TestValidate:
 
-    def test_all_passing(self, tmp_path):
+    def test_all_passing(self):
         """No violations when all specs are cited and all tests cite specs."""
         specs = {"a.md": ["item one"]}
         entries = [
@@ -160,7 +123,7 @@ class TestValidate:
         assert uncited_items == []
         assert phantoms == []
 
-    def test_uncited_test(self, tmp_path):
+    def test_uncited_test(self):
         """A test with no valid citation is reported."""
         specs = {"a.md": ["item one"]}
         entries = [
@@ -169,7 +132,7 @@ class TestValidate:
         uncited_tests, _, _ = validate(specs, entries)
         assert "t::test_one" in uncited_tests
 
-    def test_uncited_spec_item(self, tmp_path):
+    def test_uncited_spec_item(self):
         """A spec item with no test citing it is reported."""
         specs = {"a.md": ["item one", "item two"]}
         entries = [
@@ -181,7 +144,7 @@ class TestValidate:
         _, uncited_items, _ = validate(specs, entries)
         assert ("a.md", "item two") in uncited_items
 
-    def test_phantom_citation_wrong_file(self, tmp_path):
+    def test_phantom_citation_wrong_file(self):
         """A citation referencing a nonexistent spec file is a phantom."""
         specs = {"a.md": ["item one"]}
         entries = [
@@ -194,7 +157,7 @@ class TestValidate:
         assert len(phantoms) == 1
         assert phantoms[0][3] == "spec file not found"
 
-    def test_phantom_citation_wrong_text(self, tmp_path):
+    def test_phantom_citation_wrong_text(self):
         """A citation whose text doesn't match any item is a phantom."""
         specs = {"a.md": ["item one"]}
         entries = [
@@ -247,3 +210,53 @@ class TestRunValidation:
         assert result == 1
         captured = capsys.readouterr()
         assert "SPEC ITEMS WITHOUT RELATED TESTS" in captured.out
+
+    def test_backslash_n_python_end_to_end(self, tmp_path, capsys):
+        r"""A spec item with \\n matches a Python citation with \\n."""
+        specs_dir = tmp_path / "specs"
+        tests_dir = tmp_path / "tests"
+        specs_dir.mkdir()
+        tests_dir.mkdir()
+
+        # Both files use b"\\\\n" → bytes 5C 5C 6E on disk.
+        (specs_dir / "out.md").write_bytes(
+            b"# Spec\n\n- output ends with \\\\n\n"
+        )
+        (tests_dir / "test_out.py").write_bytes(
+            b'def test_newline():\n'
+            b'    """Spec: output ends with \\\\n [out.md]"""\n'
+            b'    pass\n'
+        )
+
+        result = run_validation(specs_dir, tests_dir)
+        assert result == 0, capsys.readouterr().out
+
+    def test_backslash_n_js_end_to_end(self, tmp_path, capsys):
+        r"""A spec item with \\n matches a JS citation with \\n."""
+        specs_dir = tmp_path / "specs"
+        tests_dir = tmp_path / "tests"
+        specs_dir.mkdir()
+        tests_dir.mkdir()
+
+        (specs_dir / "out.md").write_bytes(
+            b"# Spec\n\n- output ends with \\\\n\n"
+        )
+        (tests_dir / "out.test.js").write_bytes(
+            b'test("newline", () => {\n'
+            b'  // Spec: output ends with \\\\n [out.md]\n'
+            b'});\n'
+        )
+
+        result = run_validation(specs_dir, tests_dir)
+        assert result == 0
+
+
+class TestLiveSamples:
+
+    def test_live_samples_pass_validation(self, capsys):
+        r"""The committed sample specs and tests pass validation,
+        including items with \\n and \\n\\n."""
+        specs_dir = LIVE_SAMPLES_DIR / "specs" / "gen"
+        tests_dir = LIVE_SAMPLES_DIR / "tests"
+        result = run_validation(specs_dir, tests_dir)
+        assert result == 0, capsys.readouterr().out
