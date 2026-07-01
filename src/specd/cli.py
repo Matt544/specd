@@ -2,12 +2,18 @@
 Command-line interface for specd.
 
 Usage:
-    specd                         Print help
-    specd render                  Render templates to specs (convention defaults)
-    specd render -t PATH -s PATH  Render with explicit directories
-    specd render --watch          Watch templates and re-render on change
-    specd validate                Validate test/spec compliance
-    specd validate --tests PATH   Validate with explicit tests directory
+    specd                                   Print help
+    specd render                            Render templates to specs (convention defaults)
+    specd render -t PATH -s PATH            Render with explicit directories
+    specd render --watch                    Watch templates and re-render on change
+    specd validate                          Validate test/spec compliance
+    specd validate --tests PATH             Validate with explicit tests directory
+    specd policies --list                   List available policy keys and filenames
+    specd policies --copy                   Copy all policy files to current directory
+    specd policies --copy -t PATH           Copy all policy files to PATH
+    specd policies --copy --only KEY        Copy one policy file to current directory
+    specd policies --copy --only KEY -t PATH  Copy one policy file to PATH
+    specd policies --copy --force           Overwrite existing files
 """
 
 import argparse
@@ -59,6 +65,39 @@ def _build_parser():
         "--tests",
         help="Path to the tests directory",
     )
+
+    # Policies subcommand
+    policies_parser = subparsers.add_parser(
+        "policies",
+        help="List or copy bundled policy template files",
+    )
+    policies_parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List available policy keys and their filenames",
+    )
+    policies_parser.add_argument(
+        "--copy",
+        action="store_true",
+        help="Copy policy files into a directory",
+    )
+    policies_parser.add_argument(
+        "--only",
+        metavar="KEY",
+        help="Copy only the named policy (use with --copy)",
+    )
+    policies_parser.add_argument(
+        "-t", "--target",
+        metavar="DIR",
+        help="Target directory for --copy (default: current working directory)",
+    )
+    policies_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing files when copying",
+    )
+    # Store reference so _do_policies can print subcommand help.
+    policies_parser.set_defaults(_subparser=policies_parser)
 
     return parser
 
@@ -131,6 +170,66 @@ def _do_watch(args):
     return 0
 
 
+def _do_policies(args):
+    import importlib.resources
+    from pathlib import Path
+
+    from specd._policies import POLICIES
+
+    # Bare invocation: no flags set.
+    if not args.list and not args.copy and not args.only:
+        args._subparser.print_help()
+        return 0
+
+    # --only without --copy is an error.
+    if args.only and not args.copy:
+        print("Error: --only requires --copy.")
+        print("Usage: specd policies --copy --only KEY")
+        return 1
+
+    # --list
+    if args.list:
+        for key, filename in POLICIES.items():
+            print(f"{key}: {filename}")
+        return 0
+
+    # --copy
+    target = Path(args.target) if args.target else Path.cwd()
+
+    if not target.is_dir():
+        print(f"Target directory does not exist: {target}")
+        print("Create it first, then re-run.")
+        return 1
+
+    if args.only:
+        if args.only not in POLICIES:
+            print(f"Unknown policy key: '{args.only}'")
+            print(f"Valid keys: {', '.join(POLICIES)}")
+            return 1
+        to_copy = {args.only: POLICIES[args.only]}
+    else:
+        to_copy = POLICIES
+
+    if not args.force:
+        conflicts = [
+            filename for filename in to_copy.values()
+            if (target / filename).exists()
+        ]
+        if conflicts:
+            print("The following files already exist in the target directory:")
+            for filename in conflicts:
+                print(f"  {filename}")
+            print("Use --force to overwrite.")
+            return 1
+
+    policies_dir = importlib.resources.files("specd") / "policies"
+    for filename in to_copy.values():
+        content = (policies_dir / filename).read_bytes()
+        (target / filename).write_bytes(content)
+
+    return 0
+
+
 def _do_validate(args):
     paths = resolve_paths(
         templates=args.templates,
@@ -162,6 +261,8 @@ def main():
             sys.exit(_do_render(args))
     elif args.command == "validate":
         sys.exit(_do_validate(args))
+    elif args.command == "policies":
+        sys.exit(_do_policies(args))
     else:
         parser.print_help()
         sys.exit(0)
