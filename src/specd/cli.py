@@ -146,10 +146,15 @@ def _do_watch(args):
         return 1
 
     class RenderHandler(FileSystemEventHandler):
-        def on_any_event(self, event):
-            if event.src_path.endswith(".specd.md"):
+        def _handle(self, event):
+            if not event.is_directory and event.src_path.endswith(".specd.md"):
                 print(f"\nChange detected: {event.src_path}")
                 render_all(templates_dir, specs_dir)
+
+        on_modified = _handle
+        on_created = _handle
+        on_deleted = _handle
+        on_moved = _handle
 
     # Do an initial render before watching
     render_all(templates_dir, specs_dir)

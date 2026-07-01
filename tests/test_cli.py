@@ -5,6 +5,17 @@ Tests for the specd CLI entry point.
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+from watchdog.events import (
+    DirModifiedEvent,
+    FileClosedEvent,
+    FileClosedNoWriteEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileOpenedEvent,
+)
 
 PACKAGE_ROOT = Path(__file__).parents[1]
 
@@ -148,3 +159,134 @@ class TestHelpOutput:
         result = _run_specd("validate", "--help")
         assert result.returncode == 0
         assert "tests" in result.stdout.lower()
+
+
+def _capture_watch_handler(tmp_path):
+    """Start _do_watch with a fake Observer and return the handler it creates.
+
+    Sets up a minimal templates+specs directory so _do_watch gets past the
+    existence checks, patches Observer so the watch loop exits immediately,
+    and returns the FileSystemEventHandler instance that was scheduled.
+    """
+    from specd.cli import _do_watch
+
+    templates_dir = tmp_path / "templates"
+    specs_dir = tmp_path / "specs"
+    templates_dir.mkdir()
+    specs_dir.mkdir()
+    (templates_dir / "test.specd.md").write_text("# Test\n", encoding="utf-8")
+
+    captured = {}
+
+    mock_observer = MagicMock()
+    mock_observer.is_alive.return_value = False  # exit the while-loop immediately
+
+    def save_handler(handler, path, recursive=False):
+        captured["handler"] = handler
+
+    mock_observer.schedule.side_effect = save_handler
+
+    args = MagicMock()
+    args.templates = str(templates_dir)
+    args.specs = str(specs_dir)
+    args.watch = True
+
+    with patch("watchdog.observers.Observer", return_value=mock_observer):
+        _do_watch(args)
+
+    return captured["handler"], templates_dir, specs_dir
+
+
+TEMPLATE_PATH = "/fake/templates/test.specd.md"
+
+
+class TestWatchHandler:
+    """The watch-mode handler must only re-render on content modifications."""
+
+    def test_reacts_to_file_modified(self, tmp_path):
+        """FileModifiedEvent on a .specd.md file should trigger a render."""
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = FileModifiedEvent(TEMPLATE_PATH)
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 1
+
+    def test_reacts_to_file_created(self, tmp_path):
+        """FileCreatedEvent on a .specd.md file should trigger a render."""
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = FileCreatedEvent(TEMPLATE_PATH)
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 1
+
+    def test_reacts_to_file_deleted(self, tmp_path):
+        """FileDeletedEvent on a .specd.md file should trigger a render."""
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = FileDeletedEvent(TEMPLATE_PATH)
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 1
+
+    def test_ignores_file_opened(self, tmp_path):
+        """FileOpenedEvent must NOT trigger a render (causes infinite loops)."""
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = FileOpenedEvent(TEMPLATE_PATH)
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 0, (
+                "Handler fired on FileOpenedEvent — this causes infinite "
+                "re-render loops when an editor opens the template file"
+            )
+
+    def test_ignores_file_closed_no_write(self, tmp_path):
+        """FileClosedNoWriteEvent must NOT trigger a render."""
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = FileClosedNoWriteEvent(TEMPLATE_PATH)
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 0, (
+                "Handler fired on FileClosedNoWriteEvent — this causes "
+                "infinite re-render loops when the template file is read"
+            )
+
+    def test_ignores_file_closed(self, tmp_path):
+        """FileClosedEvent (close-after-write) should not double-fire.
+
+        A write already produces a FileModifiedEvent, so reacting to the
+        subsequent close would cause duplicate renders.
+        """
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = FileClosedEvent(TEMPLATE_PATH)
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 0, (
+                "Handler fired on FileClosedEvent — writes already produce "
+                "FileModifiedEvent so this causes duplicate renders"
+            )
+
+    def test_ignores_dir_modified(self, tmp_path):
+        """DirModifiedEvent must NOT trigger a render."""
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = DirModifiedEvent("/fake/templates/")
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 0, (
+                "Handler fired on DirModifiedEvent — directory metadata "
+                "changes should not trigger re-renders"
+            )
+
+    def test_ignores_non_specd_files(self, tmp_path):
+        """Events on non-.specd.md files should be ignored."""
+        handler, templates_dir, specs_dir = _capture_watch_handler(tmp_path)
+        event = FileModifiedEvent("/fake/templates/notes.md")
+
+        with patch("specd.cli.render_all") as mock_render:
+            handler.dispatch(event)
+            assert mock_render.call_count == 0
