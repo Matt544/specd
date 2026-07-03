@@ -201,7 +201,18 @@ TEMPLATE_PATH = "/fake/templates/test.specd.md"
 
 
 class TestWatchHandler:
-    """The watch-mode handler must only re-render on content modifications."""
+    """The watch-mode handler must only re-render on content modifications.
+
+    Regression tests for an infinite-loop bug triggered on WSL when VSCode
+    opens a .specd.md file.  The root cause: the handler used on_any_event,
+    which fires on opens, closes, and attribute changes — not just writes.
+    When VSCode opens a template, the open event triggers a render; the
+    render reads the template via Jinja2, which produces close/access events
+    on the same file, which trigger another render, and so on indefinitely.
+
+    The handler must react only to events that indicate content changed
+    (modified, created, deleted, moved) and ignore everything else.
+    """
 
     def test_reacts_to_file_modified(self, tmp_path):
         """FileModifiedEvent on a .specd.md file should trigger a render."""

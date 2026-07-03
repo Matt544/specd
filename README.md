@@ -1,6 +1,8 @@
-# specd
+# SpecD
 
-Render Jinja2 spec templates and validate that tests cite spec items.
+`specd` (`/spɛk ˈdiː/` or "speck dee") facilitates developing software with LLM agents using a spec-test-matching approach.
+
+It renders Jinja2 spec templates and validate that tests cite spec items.
 
 ## Install
 

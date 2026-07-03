@@ -24,3 +24,8 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 specd = ["policies/*.md"]
+
+[tool.specd]
+templates = "specs/templates"
+specs = "specs/gen"
+tests = "tests"
