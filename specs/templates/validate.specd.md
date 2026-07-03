@@ -1,4 +1,4 @@
-{% set ENTIRE_VERBATIM_SPEC_ITEM = 'entire verbatim spec line item excluding "- "' %}
+{% set VERBATIM_SPEC_ITEM = 'entire verbatim spec line item excluding "- "' %}
 
 {% set PATH_TO_TEST = "path from tests/ with `::` for internal resource delimiters" %}
 
@@ -32,7 +32,7 @@ Validates compliance with test-to-spec matching policy.
 
 # Test-to-Spec matching
 
-- A spec is only cited by a test if the citation is in the form `Spec: <{{ENTIRE_VERBATIM_SPEC_ITEM}}> [<spec file name>]`
+- A spec is only cited by a test if the citation is in the form `Spec: <{{VERBATIM_SPEC_ITEM}}> [<spec file name>]`
 - Representations of newlines in specs as `\\n` will match up with the same in test-to-spec references
 
 # Report output
@@ -52,7 +52,7 @@ Validates compliance with test-to-spec matching policy.
 - The tests without specs section is followed by a heading: `SPEC ITEMS NOT CITED BY TESTS (<num>)\\n\\n`
 - The specs without tests heading is followed by a list of all spec items that are not cited by tests
 - The list of uncited specs is number sequentially
-- Each spec line item that is not cited by a test is shown on its own line as: `<n>. <spec file name>: <{{ENTIRE_VERBATIM_SPEC_ITEM}}>`
+- Each spec line item that is not cited by a test is shown on its own line as: `<n>. <spec file name>: <{{VERBATIM_SPEC_ITEM}}>`
 - If there are no uncited specs, the report skips that section entirely
 
 ## The phantom citations section
