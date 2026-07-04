@@ -43,7 +43,7 @@ class TestRenderTerminalOutput:
         Spec: When the user calls `render`, each template that is rendered to a spec file is represented in the terminal as `  <scope>.specd.md -> <specs directory name>/<scope>.md` [render.md]
         """
         templates_dir = tmp_path / "templates"
-        specs_dir = tmp_path / "specs"
+        specs_dir = tmp_path / "my_specs"
         templates_dir.mkdir()
         specs_dir.mkdir()
 

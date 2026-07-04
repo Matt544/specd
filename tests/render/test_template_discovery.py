@@ -69,7 +69,7 @@ class TestNoTemplatesFound:
         """
         Spec: If no templates are found in the specd `templates` directory, `render` prints `No *.specd.md templates found in <templates dir name>/` [render.md]
         """
-        templates_dir = tmp_path / "templates"
+        templates_dir = tmp_path / "my_templates"
         specs_dir = tmp_path / "specs"
         templates_dir.mkdir()
         specs_dir.mkdir()

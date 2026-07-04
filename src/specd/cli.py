@@ -18,10 +18,18 @@ Usage:
 
 import argparse
 import sys
+from pathlib import Path
 
 from specd.config import resolve_paths
 from specd.render import render_all
 from specd.validate import run_validation
+
+
+class _TrailingNewlineFormatter(argparse.HelpFormatter):
+    """HelpFormatter that appends a blank line after the last option."""
+
+    def format_help(self):
+        return super().format_help() + "\n"
 
 
 def _add_path_flags(parser):
@@ -47,6 +55,7 @@ def _build_parser():
     render_parser = subparsers.add_parser(
         "render",
         help="Render *.specd.md templates into spec files",
+        formatter_class=_TrailingNewlineFormatter,
     )
     _add_path_flags(render_parser)
     render_parser.add_argument(
@@ -111,11 +120,11 @@ def _do_render(args):
     specs_dir = paths["specs"]
 
     if not templates_dir.is_dir():
-        print(f"Templates directory not found: {templates_dir}")
+        print("The expected templates dir does not exist")
         return 1
 
     if not specs_dir.is_dir():
-        print(f"Specs directory not found: {specs_dir}")
+        print("The expected specs dir does not exist")
         return 1
 
     render_all(templates_dir, specs_dir)
@@ -131,11 +140,11 @@ def _do_watch(args):
     specs_dir = paths["specs"]
 
     if not templates_dir.is_dir():
-        print(f"Templates directory not found: {templates_dir}")
+        print("The expected templates dir does not exist")
         return 1
 
     if not specs_dir.is_dir():
-        print(f"Specs directory not found: {specs_dir}")
+        print("The expected specs dir does not exist")
         return 1
 
     try:
@@ -148,16 +157,13 @@ def _do_watch(args):
     class RenderHandler(FileSystemEventHandler):
         def _handle(self, event):
             if not event.is_directory and event.src_path.endswith(".specd.md"):
-                print(f"\nChange detected: {event.src_path}")
+                relative = Path(event.src_path).relative_to(templates_dir)
+                print(f"\nChange detected: {relative}")
                 render_all(templates_dir, specs_dir)
 
+        # Only save-related events trigger a re-render
         on_modified = _handle
         on_created = _handle
-        on_deleted = _handle
-        on_moved = _handle
-
-    # Do an initial render before watching
-    render_all(templates_dir, specs_dir)
 
     observer = Observer()
     observer.schedule(RenderHandler(), str(templates_dir), recursive=True)

@@ -33,7 +33,7 @@ def render_all(templates_dir, specs_dir):
     templates = sorted(templates_dir.glob("*.specd.md"))
 
     if not templates:
-        print("No *.specd.md templates found in templates/")
+        print(f"No *.specd.md templates found in {templates_dir.name}/")
         return
 
     for template_path in templates:
@@ -43,4 +43,4 @@ def render_all(templates_dir, specs_dir):
         output_path = specs_dir / output_name
         output_content = GENERATED_MARKER + "\n\n" + rendered
         output_path.write_text(output_content, encoding="utf-8")
-        print(f"  {template_path.name} -> specs/{output_name}")
+        print(f"  {template_path.name} -> {specs_dir.name}/{output_name}")
