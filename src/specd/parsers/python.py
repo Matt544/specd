@@ -25,7 +25,7 @@ def collect_test_entries(test_file, tests_dir):
     tests_dir = Path(tests_dir)
     source = test_file.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(test_file))
-    relative_path = test_file.relative_to(tests_dir.parent).as_posix()
+    relative_path = test_file.relative_to(tests_dir).as_posix()
     entries = []
 
     for node in tree.body:

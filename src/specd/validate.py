@@ -15,7 +15,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-CITATION_RE = re.compile(r"Spec:\s+(.+?)\s+\[([^\]]+\.md)\]")
+CITATION_RE = re.compile(
+    r"^\s*Spec:\s+(.+?)\s+\[([^\]]+\.md)\]\s*$", re.MULTILINE
+)
 SPEC_ITEM_RE = re.compile(r"^- (.+)")
 
 
@@ -27,17 +29,32 @@ class TestEntry:
 
 
 def load_specs(specs_dir):
-    """Return a mapping of spec filename to list of spec item texts."""
+    """Return a mapping of spec filename to list of spec item texts.
+
+    Discovers .md files recursively. Lines inside HTML comment blocks
+    (``<!-- ... -->``) are not treated as spec items.
+    """
     specs_dir = Path(specs_dir)
     specs = {}
-    for spec_file in sorted(specs_dir.glob("*.md")):
+
+    for spec_file in sorted(specs_dir.rglob("*.md")):
         items = []
+        in_comment = False
+
         for line in spec_file.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("<!--"):
+                in_comment = True
+            if in_comment:
+                if "-->" in line:
+                    in_comment = False
+                continue
+
             match = SPEC_ITEM_RE.match(line)
             if match:
-                raw = match.group(1).strip()
-                items.append(raw)
+                items.append(match.group(1).strip())
+
         specs[spec_file.name] = items
+
     return specs
 
 
@@ -96,41 +113,36 @@ def validate(specs, test_entries):
 
 def report(uncited_tests, uncited_items, phantoms, total_tests):
     """Print a compliance report to stdout."""
-    print("=== Spec Compliance Report ===\n")
+    print("\n=== Spec Compliance Report ===\n")
 
     if uncited_tests:
-        print(f"TESTS WITHOUT VALID SPEC ITEMS ({len(uncited_tests)})")
-        for identifier in uncited_tests:
-            print(f"  {identifier}")
+        print(f"TESTS WITHOUT VALID SPEC ITEMS ({len(uncited_tests)})\n")
+        for n, identifier in enumerate(uncited_tests, 1):
+            print(f"{n}. {identifier}")
         print()
 
     if uncited_items:
-        print(f"SPEC ITEMS WITHOUT RELATED TESTS ({len(uncited_items)})")
-        current_file = None
-        for spec_file, item in uncited_items:
-            if spec_file != current_file:
-                print(f"  [{spec_file}]")
-                current_file = spec_file
-            print(f"    - {item}")
+        print(f"SPEC ITEMS NOT CITED BY TESTS ({len(uncited_items)})\n")
+        for n, (spec_file, item) in enumerate(uncited_items, 1):
+            print(f"{n}. {spec_file}: {item}")
         print()
 
     if phantoms:
-        print(f"PHANTOM CITATIONS ({len(phantoms)})")
-        for test_id, text, spec_file, reason in phantoms:
-            print(f"  {test_id}")
-            print(f'    "{text}" [{spec_file}] — {reason}')
+        print(f"PHANTOM CITATIONS ({len(phantoms)})\n")
+        for n, (test_id, text, spec_file, reason) in enumerate(phantoms, 1):
+            print(f"{n}. {test_id}")
+            print(f"   - {text} [{spec_file}]")
+            print(f"   - {reason}")
         print()
 
     tests_with_valid = total_tests - len(uncited_tests)
-    print("=== Summary ===")
+    print("=== Summary ===\n")
     print(f"  Tests checked:                     {total_tests}")
     print(f"  Tests with valid spec items:       {tests_with_valid}")
     print(f"  Tests without valid spec items:    {len(uncited_tests)}")
     print(f"  Spec items without related tests:  {len(uncited_items)}")
     print(f"  Phantom citations:                 {len(phantoms)}")
-
-    if not (uncited_tests or uncited_items or phantoms):
-        print("\nAll checks passed.")
+    print()
 
 
 def run_validation(specs_dir, tests_dir):

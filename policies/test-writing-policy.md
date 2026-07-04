@@ -33,7 +33,7 @@ The test-writer will not need to create those spec files; they should exist befo
 Check for compliance by running `specd validate` from the project root:
 ```
 specd validate
-specd validate -s path/to/specs --tests path/to/tests
+specd validate --specs path/to/specs --tests path/to/tests
 ```
 
 `specd validate` checks three things: tests without valid spec citations, spec items without related tests, and phantom citations (citations whose text does not appear verbatim in the named spec file). It exits with code 1 if any violations are found.

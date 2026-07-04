@@ -2,6 +2,11 @@
 
 {% set PATH_TO_TEST = "path from tests/ with `::` for internal resource delimiters" %}
 
+{% macro add_blank_line_after(section_description) -%}
+The {{ section_description }} ends with `\\n\\n`
+{%- endmacro %}
+
+
 # Validate test-spec-matching
 
 Validates compliance with test-to-spec matching policy.
@@ -17,18 +22,23 @@ Validates compliance with test-to-spec matching policy.
 
 - A spec item is any line that starts with "- " in a .md file located anywhere under the specd `specs` directory
 - A line item in the form of a spec item but inside a comment delineated by `<!-- -->` is not a spec item
+- If the specd `specs` directory is configured with a pyproject.toml, that is the directory in which specs are discovered
+- if `validate` is called with the `-s` or `--specs` options, specs are discovered only at the supplied location
+- If the specd `specs` directory is not configured with a pyproject.toml and the `-s` or `--specs` options are not used, the specs are discovered in `specs/` under the cwd
+- If the specd `tests` directory is configured with a pyproject.toml, that is the directory in which tests are discovered
+- if `validate` is called with the `--tests` option, tests are discovered only at the supplied location
+- If the specd `tests` directory is not configured with a pyproject.toml and the `--tests` options is not used, the tests are discovered in `tests/` under the cwd
 
 # Python test/spec discovery
 - a python test file is a file named test_*.py located anywhere under the specd `tests` directory 
 - a python test is a function or method with a name in the form `test_*`
 - python functions or methods validly cite specs by placing the references on their own lines in the docstring
-- python discoverability patterns apply by default
 
 # Javascript and Typescript test/spec discovery
 - a JS/TS test file is a file named *.test.{js,jsx,ts,tsx} located anywhere under the specd `tests` directory
 - a JS/TS test is a call to a `test()` or `it()` function
 - JS/TS functions validly cite specs by placing the references on their own lines in `//` line comments or `/* */` block comments
-- JS discoverability patterns only apply if the JS parser is enabled
+- JS discoverability patterns only apply when the specd[js] optional dependencies are installed
 
 # Test-to-Spec matching
 
@@ -38,40 +48,46 @@ Validates compliance with test-to-spec matching policy.
 # Report output
 
 - The report starts with the main title "\\n=== Spec Compliance Report ===\\n\\n"
+- The report sections appear in this fixed order, each only if applicable: tests without specs, specs without tests, phantom citations, summary
 
 ## The tests without specs section
 
-- The main title is followed by a heading: `TESTS WITHOUT VALID SPEC ITEMS (<num>)\\n\\n`
+- The tests without specs section has a heading: `TESTS WITHOUT VALID SPEC ITEMS (<num>)\\n\\n`
 - The tests without specs heading is followed by a list of all functions or methods that do not have valid spec citations
 - The list of tests without valid specs is number sequentially
 - Each function or method that does not have a valid spec citation is shown on its own line as: `<n>. <{{PATH_TO_TEST}}>`
 - If there are no tests without valid spec citations, the report skips that section entirely
+- {{ add_blank_line_after("tests without specs section") }}
 
 ## The specs without tests section
 
-- The tests without specs section is followed by a heading: `SPEC ITEMS NOT CITED BY TESTS (<num>)\\n\\n`
+- The specs without tests section has a heading: `SPEC ITEMS NOT CITED BY TESTS (<num>)\\n\\n`
 - The specs without tests heading is followed by a list of all spec items that are not cited by tests
 - The list of uncited specs is number sequentially
 - Each spec line item that is not cited by a test is shown on its own line as: `<n>. <spec file name>: <{{VERBATIM_SPEC_ITEM}}>`
 - If there are no uncited specs, the report skips that section entirely
+- {{ add_blank_line_after("specs without tests section") }}
 
 ## The phantom citations section
 
-- The specs without tests section is followed by a heading: `PHANTOM CITATIONS (<num>)\\n\\n`
+- The phantom citations section has a heading: `PHANTOM CITATIONS (<num>)\\n\\n`
 - The phantom citations heading is followed by a list of all test-to-spec references that do not correctly cite a spec
 - a test fails to correctly cite a spec if it contains a reference in the form `Spec: <purported_spec> [<purported_file>]` but content of either the `purported_spec` or the file name does not match to an actual spec item or spec file
 - The list of phantom citations is number sequentially
-- Each function or method that contains a test-to-spec reference that do not correctly cite a spec is shown on its own lines as: `<n>. <{{PATH_TO_TEST}}>\\n   - <the verbatim phantom citation> [<spec file name>]\\n   - <reason>`
+- Each phantom citation is shown on its own line as: `<n>. <{{PATH_TO_TEST}}>\\n   - <the verbatim phantom spec item> [<spec file name>]\\n   - <reason>`
 - The `reason` for inclusion of a test-to-spec reference in the phantom citations section will be either `spec file not found` or `spec item not found in file`
 - If there are no phantom citations, the report skips that section entirely
+- {{ add_blank_line_after("phantom citations section") }}
 
 ## The summary
 
-- The phantom citations section is followed by a summary, opening with: `=== Summary ===\\n\\n`
+- The summary has a heading: `=== Summary ===\\n\\n`
 - The summary heading is followed by a summary report
+- The summary report is never skipped
 - The first summary line is: `Tests checked:   <n>`
 - The second summary line is: `Tests with valid spec items:   <n>`
 - The third summary line is: `Tests without valid spec items:   <n>`
 - The fourth summary line is: `Spec items without related tests:   <n>`
 - The fifth summary line is: `Phantom citations:   <n>`
 - The first digits of the numbers of each line of the summary report represented by `<n>` line up
+- {{ add_blank_line_after("summary section") }}
