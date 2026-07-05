@@ -1,0 +1,29 @@
+# Parsers
+
+Language-specific modules that extract test entries from test files, for use by `specd validate`.
+
+# The parser module interface
+
+- A parser is a Python module that exposes `FILE_PATTERNS` and `collect_test_entries`
+- `FILE_PATTERNS` is a non-empty list of glob strings matched against file names (not full paths)
+- `collect_test_entries(test_file, tests_dir)` accepts a path to a test file and a path to the tests root directory, and returns a list of `TestEntry` objects
+- `collect_test_entries` returns an empty list when the file contains no tests
+
+# Registration
+
+- Parsers are registered in the `PARSERS` list in `specd.parsers`
+- The Python parser is always registered
+- The JavaScript/TypeScript parser is registered only when the `specd[js]` optional dependencies are installed
+
+# TestEntry
+
+- Each test found in a file is represented as a `TestEntry` with an `identifier` and a `docstring`
+- The `identifier` is a string with components joined by `::`, where the first component is a POSIX-style path from the tests directory's parent — e.g. a file at `tests/subdir/test_foo.py` has path component `tests/subdir/test_foo.py`
+- For a top-level test, the identifier takes the form `<path>::<test name>`
+- For a test nested inside a container (class, describe block, or equivalent), each container name is inserted as a `::` component between the path and the test name, in order from outermost to innermost
+- The `docstring` is the body of the docstring or comment block associated with the test — with language markers stripped but no further processing applied — or `None` if the test has no docstring or comment block
+
+# Raw text contract
+
+- Characters in the `docstring` body are the literal characters from the source file: no escape-sequence processing is applied
+- This contract holds for all parsers regardless of language
