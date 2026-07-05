@@ -32,6 +32,20 @@ def _bundled_content(filename):
     return (policies_dir / filename).read_bytes()
 
 
+class TestPoliciesSubcommand:
+
+    def test_policies_is_valid_subcommand(self):
+        """
+        Spec: `policies` is a valid positional argument to the `specd` command line entrypoint [policies.md]
+        """
+        result = subprocess.run(
+            SPECD + ["policies", "--help"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+
+
 class TestPoliciesCopy:
 
     def test_copy_creates_three_files(self, tmp_path):

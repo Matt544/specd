@@ -79,6 +79,7 @@ def _build_parser():
     policies_parser = subparsers.add_parser(
         "policies",
         help="List or copy bundled policy template files",
+        formatter_class=lambda prog: _TrailingNewlineFormatter(prog, width=120),
     )
     policies_parser.add_argument(
         "--list",
@@ -96,7 +97,7 @@ def _build_parser():
         help="Copy only the named policy (use with --copy)",
     )
     policies_parser.add_argument(
-        "-t", "--target",
+        "--target",
         metavar="DIR",
         help="Target directory for --copy (default: current working directory)",
     )
@@ -187,19 +188,29 @@ def _do_policies(args):
 
     from specd._policies import POLICIES
 
+    # Options that require --copy
+    if args.target and not args.copy:
+        print("--target can only be used with --copy")
+        return 1
+
+    if args.force and not args.copy:
+        print("--force can only be used with --copy")
+        return 1
+
+    if args.only and not args.copy:
+        print("--only can only be used with --copy")
+        return 1
+
     # Bare invocation: no flags set.
-    if not args.list and not args.copy and not args.only:
+    if not args.list and not args.copy:
         args._subparser.print_help()
         return 0
 
-    # --only without --copy is an error.
-    if args.only and not args.copy:
-        print("Error: --only requires --copy.")
-        print("Usage: specd policies --copy --only KEY")
-        return 1
-
-    # --list
+    # --list (must not be combined with other options)
     if args.list:
+        if args.copy or args.only or args.target or args.force:
+            print("The --list option can't be combined with other options")
+            return 1
         for key, filename in POLICIES.items():
             print(f"{key}: {filename}")
         return 0
@@ -208,14 +219,13 @@ def _do_policies(args):
     target = Path(args.target) if args.target else Path.cwd()
 
     if not target.is_dir():
-        print(f"Target directory does not exist: {target}")
-        print("Create it first, then re-run.")
+        print(f"The target directory does not exist. Create it first.")
+        print(f"The target was {target}")
         return 1
 
     if args.only:
         if args.only not in POLICIES:
-            print(f"Unknown policy key: '{args.only}'")
-            print(f"Valid keys: {', '.join(POLICIES)}")
+            print(f"Unknown policy key: '{args.only}'. Use --list to get the correct keys.")
             return 1
         to_copy = {args.only: POLICIES[args.only]}
     else:
@@ -227,16 +237,25 @@ def _do_policies(args):
             if (target / filename).exists()
         ]
         if conflicts:
-            print("The following files already exist in the target directory:")
+            print("\nThe following files already exist in the target directory:")
             for filename in conflicts:
-                print(f"  {filename}")
-            print("Use --force to overwrite.")
+                print(f"- {filename}")
+            print("Use --force to overwrite them.\n")
             return 1
 
     policies_dir = importlib.resources.files("specd") / "policies"
+    created = []
     for filename in to_copy.values():
         content = (policies_dir / filename).read_bytes()
         (target / filename).write_bytes(content)
+        if args.target:
+            created.append(str(target / filename))
+        else:
+            created.append(filename)
+
+    print("The following were created:")
+    for path_display in created:
+        print(f"- {path_display}")
 
     return 0
 
