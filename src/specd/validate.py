@@ -143,6 +143,12 @@ def report(uncited_tests, uncited_items, phantoms, total_tests):
     print(f"  Spec items without related tests:  {len(uncited_items)}")
     print(f"  Phantom citations:                 {len(phantoms)}")
     print()
+    print(
+        'Note: "Tests checked" are counted by function. Parameterized test '
+        "functions may run more than once in a test suite, causing the test "
+        "runner's count to be higher."
+    )
+    print()
 
 
 def run_validation(specs_dir, tests_dir):
