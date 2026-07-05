@@ -680,6 +680,25 @@ class TestSummary:
             f"Summary number columns not aligned: {digit_columns}"
         )
 
+    def test_summary_includes_parameterization_note(self, tmp_path):
+        """
+        Spec: After the summary report, there is: `Note: "Tests checked" are counted by function. Parameterized test functions may run more than once in a test suite, causing the test runner's count to be higher.` [validate.md]
+        """
+        specs_dir = tmp_path / "specs"
+        tests_dir = tmp_path / "tests"
+        specs_dir.mkdir()
+        tests_dir.mkdir()
+
+        _write_spec(specs_dir, "a.md", ["item one"])
+        _write_test(tests_dir, "test_a.py", [("test_one", ["item one [a.md]"])])
+
+        result = _run_validate(specs_dir, tests_dir)
+        assert (
+            'Note: "Tests checked" are counted by function. '
+            "Parameterized test functions may run more than once in a test suite, "
+            "causing the test runner's count to be higher."
+        ) in result.stdout
+
     def test_summary_section_ends_with_double_newline(self, tmp_path):
         """
         Spec: The summary section ends with `\\n\\n` [validate.md]

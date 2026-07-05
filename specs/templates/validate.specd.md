@@ -90,4 +90,6 @@ Validates compliance with test-to-spec matching policy.
 - The fourth summary line is: `Spec items without related tests:   <n>`
 - The fifth summary line is: `Phantom citations:   <n>`
 - The first digits of the numbers of each line of the summary report represented by `<n>` line up
+- {{ add_blank_line_after("summary report") }}
+- After the summary report, there is: `Note: "Tests checked" are counted by function. Parameterized test functions may run more than once in a test suite, causing the test runner's count to be higher.`
 - {{ add_blank_line_after("summary section") }}

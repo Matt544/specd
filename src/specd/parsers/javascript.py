@@ -45,7 +45,7 @@ def collect_test_entries(test_file, tests_dir):
     parser = Parser(language)
     tree = parser.parse(source)
 
-    relative_path = test_file.relative_to(tests_dir).as_posix()
+    relative_path = test_file.relative_to(tests_dir.parent).as_posix()
     entries = []
     _process_block(tree.root_node, [], entries, relative_path)
     return entries

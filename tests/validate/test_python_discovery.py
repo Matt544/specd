@@ -235,13 +235,13 @@ class TestPythonCitationDiscovery:
         # The path uses :: as the internal resource delimiter
         assert "test_foo.py::test_uncited" in result.stdout
 
-        # The path is relative to the tests/ directory — "tests/" is not a prefix
+        # The path is relative to tests_dir's parent, so it starts with "tests/"
         lines_with_test = [
             line for line in result.stdout.splitlines()
             if "test_uncited" in line
         ]
         assert lines_with_test, "test_uncited not found in output"
         for line in lines_with_test:
-            assert not line.lstrip(".0123456789 ").startswith("tests/"), (
-                f"Path includes 'tests/' prefix, should be relative to tests/: {line!r}"
+            assert line.lstrip(".0123456789 ").startswith("tests/"), (
+                f"Path should start with 'tests/' (relative to tests_dir parent): {line!r}"
             )
