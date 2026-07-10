@@ -5,10 +5,7 @@ CLI functionality related to starter-resources for a project.
 # CLI
 
 - `resources` is a valid positional argument to the `specd` command line entrypoint
-- When the user calls `resources --create`, three documents are created: spec-writing-policy.md, test-writing-policy.md, spec-implementation-policy.md
-- The created copy of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md
-- The created copy of test-writing-policy.md is identical in content to the bundled test-writing-policy.md
-- The created copy of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md
+- When the user calls `resources --create`, four documents are created: spec-writing-policy.md, test-writing-policy.md, spec-implementation-policy.md, specd-orientation.md
 - When `resources --create` runs without error, there is a message: `The following were created:\\n<list of created files>`
 - When `resources --create` runs without error, the message lists created files as `- <target><filename>`
 
@@ -24,9 +21,9 @@ CLI functionality related to starter-resources for a project.
 # --force
 
 - If a document with a name matching a resource that would be created already exists in the target directory, no resources are created
-- If a document with a name matching one of the three resources already exists in the target directory, a warning is printed: "\\nThe following files already exist in the target directory:\\n<each existing file name on its own line with "- ">\\nUse --force to overwrite them.\\n"
-- If a document with a name matching one of the three resources already exists in the target directory, it exits with code 1
-- If a document with a name matching one of the three resources already exists in the target directory and the `--force` option is supplied, any existing same-named documents are overwritten
+- If a document with a name matching one of the four resources already exists in the target directory, a warning is printed: "\\nThe following files already exist in the target directory:\\n<each existing file name on its own line with "- ">\\nUse --force to overwrite them.\\n"
+- If a document with a name matching one of the four resources already exists in the target directory, it exits with code 1
+- If a document with a name matching one of the four resources already exists in the target directory and the `--force` option is supplied, any existing same-named documents are overwritten
 - If `--force` is supplied without `--create` there is a message: "--force can only be used with --create"
 - If `--force` is supplied without `--create`, it exits with code 1
 
@@ -35,6 +32,7 @@ CLI functionality related to starter-resources for a project.
 - When `resources --list` is called, the first line output is `spec-writing: spec-writing-policy.md`
 - When `resources --list` is called, the second line output is  `test-writing: test-writing-policy.md`
 - When `resources --list` is called, the third line output is `spec-implementation: spec-implementation-policy.md`
+- When `resources --list` is called, the fourth line output is `specd-orientation: specd-orientation.md`
 - If `resources --list` is called with any other options, a warning is printed: `The --list option can't be combined with other options`
 - If `resources --list` is called with any other options, it exits with code 1
 
@@ -42,7 +40,7 @@ CLI functionality related to starter-resources for a project.
 
 - If `resources --create` is called with `--only <resource key>`, only that resource is created
 - If --only is used with an unknown key, a warning is printed: `Unknown resource key: '<key>'. Use --list to get the correct keys.`
-- The valid keys for use with `--only` are `spec-writing`, `test-writing`, and `spec-implementation`
+- The valid keys for use with `--only` are `spec-writing`, `test-writing`, `spec-implementation`, and `specd-orientation`
 - If --only is used with an unknown key, it exits with code 1
 - `--only` can be combined with `--target` and `--force`
 - If `--only` is supplied without `--create` there is a message: "--only can only be used with --create"
@@ -59,3 +57,57 @@ CLI functionality related to starter-resources for a project.
 - Help text includes: `  --target DIR` + `Target directory for --create (default: current working directory)`
 - Help text includes: `  --force` + `Overwrite existing files when creating`
 - Calling `resources` without options prints the help text
+
+# Content of the created resources
+
+- The created version of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md
+- The created version of test-writing-policy.md includes all the static content of the bundled test-writing-policy.md that is unaffected by any jinja syntax
+- The created version of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md
+- The created version of specd-orientation.md is identical in content to the bundled specd-orientation.md
+
+## Dynamic content in test-writing-policy.md
+
+{% set if_testing_policy = 'If test-writing-policy.md will be created' %}
+{% set citation_rule_for_python = "- In Python, citations go in the test function's docstring" %}
+{% set citation_rule_for_js = "- In JavaScript/TypeScript, citations go in `//` comments inside the test body" %}
+{% set not_languages_config = 'there is not a pyproject.toml that includes a tool.specd "languages" key' %}
+{% set python_tests_example_heading = "### Python tests for logging" %}
+{% set js_tests_example_heading = "### JavaScript/TypeScript tests for logging" %}
+
+{% macro config_languages_includes(language) -%}
+there is a pyproject.toml that includes {{language}} under its tool.specd "languages" key
+{%- endmacro %}
+{% macro config_languages_does_not_include(language) -%}
+there is a pyproject.toml that includes a tool.specd "languages" key without {{language}}
+{%- endmacro %}
+
+## Python content included by configuration and by default
+
+- {{if_testing_policy}} and {{config_languages_includes("`python`")}}, point 1 of the `## Rules` section includes: `{{citation_rule_for_python}}`
+- {{if_testing_policy}} and {{config_languages_includes("`python`")}}, the file includes `{{python_tests_example_heading}}`
+
+- {{if_testing_policy}} and {{not_languages_config}}, point 1 of the `## Rules` section includes `{{citation_rule_for_python}}`
+- {{if_testing_policy}} and {{not_languages_config}}, the file includes `{{python_tests_example_heading}}`
+
+## Python content excluded by configuration
+
+- {{if_testing_policy}} and {{config_languages_does_not_include("`python`")}}, point 1 of the `## Rules` section does not include `{{citation_rule_for_python}}`
+- {{if_testing_policy}} and {{config_languages_does_not_include("`python`")}}, the file does not include `{{python_tests_example_heading}}`
+
+## JS/TS content included by configuration and according to installation
+
+- {{if_testing_policy}} and {{config_languages_includes("`javascript` or `typescript`")}}, point 1 of the `## Rules` section includes: `{{citation_rule_for_js}}`
+- {{if_testing_policy}} and {{config_languages_includes("`javascript` or `typescript`")}}, the file includes `{{js_tests_example_heading}}` 
+
+- {{if_testing_policy}} and {{not_languages_config}}, and if the `specd[js]` optional dependencies are installed, then point 1 of the `## Rules` section includes `{{citation_rule_for_js}}`
+- {{if_testing_policy}} and {{not_languages_config}}, and if the `specd[js]` optional dependencies are installed, the file includes `{{js_tests_example_heading}}`
+
+## JS/TS content excluded by configuration
+
+- {{if_testing_policy}} and {{config_languages_does_not_include("`javascript` or `typescript`")}}, point 1 of the `## Rules` section does not include `{{citation_rule_for_js}}`
+- {{if_testing_policy}} and {{config_languages_does_not_include("`javascript` or `typescript`")}}, the file does not include `{{js_tests_example_heading}}`
+
+## JS/TS content excluded according to installation
+
+- {{if_testing_policy}} and {{not_languages_config}}, and if the `specd[js]` optional dependencies are not installed, then point 1 of the `## Rules` section does not include `{{citation_rule_for_js}}`
+- {{if_testing_policy}} and {{not_languages_config}}, and if the `specd[js]` optional dependencies are not installed, the file does not include `{{js_tests_example_heading}}`

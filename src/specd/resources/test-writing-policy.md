@@ -25,9 +25,7 @@ The test-writer will not need to create those spec files; they should exist befo
 - And the tests in one test file can relate to specs from multiple different spec files, where appropriate, though that will be less common.
 
 ## Conventions
-- When citing spec items that contain `\\n` (a literal backslash-n representing a newline in program output), write `\\n` in the citation, regardless of language. All parsers extract raw source text with no escape processing, and `specd validate` compares raw text on both sides.
-  - **Python docstrings**: write `\\n` (two backslashes in the source). The Python parser extracts the raw source characters from the docstring, bypassing Python's string escape processing.
-  - **JS/TS comments**: write `\\n` (two backslashes in the source). Comments have no escape processing, so the text passes through as-is.
+- Write newlines in specs and spec-citations as `\\n`, which ensures the parsers will recognise a match.
 
 ## Enforcement
 Check for compliance by running `specd validate` from the project root:
@@ -37,8 +35,6 @@ specd validate -s path/to/specs --tests path/to/tests
 ```
 
 `specd validate` checks three things: tests without valid spec citations, spec items without related tests, and phantom citations (citations whose text does not appear verbatim in the named spec file). It exits with code 1 if any violations are found.
-
-Supported test languages: Python (`test_*.py`) and JavaScript/TypeScript (`*.test.{js,jsx,ts,tsx}`).
 
 ## Example
 ### Spec for logging

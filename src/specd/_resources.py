@@ -9,4 +9,5 @@ RESOURCES = {
     "spec-writing": "spec-writing-policy.md",
     "test-writing": "test-writing-policy.md",
     "spec-implementation": "spec-implementation-policy.md",
+    "specd-orientation": "specd-orientation.md",
 }

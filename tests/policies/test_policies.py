@@ -13,6 +13,7 @@ ALL_RESOURCE_FILES = (
     "spec-writing-policy.md",
     "test-writing-policy.md",
     "spec-implementation-policy.md",
+    "specd-orientation.md",
 )
 
 
@@ -48,9 +49,9 @@ class TestResourcesSubcommand:
 
 class TestResourcesCopy:
 
-    def test_copy_creates_three_files(self, tmp_path):
+    def test_copy_creates_four_files(self, tmp_path):
         """
-        Spec: When the user calls `resources --create`, three documents are created: spec-writing-policy.md, test-writing-policy.md, spec-implementation-policy.md [resources.md]
+        Spec: When the user calls `resources --create`, four documents are created: spec-writing-policy.md, test-writing-policy.md, spec-implementation-policy.md, specd-orientation.md [resources.md]
         """
         result = _run("--create", "--target", str(tmp_path))
         assert result.returncode == 0
@@ -59,9 +60,10 @@ class TestResourcesCopy:
 
     def test_copy_file_contents_match_bundled(self, tmp_path):
         """
-        Spec: The created copy of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md [resources.md]
-        Spec: The created copy of test-writing-policy.md is identical in content to the bundled test-writing-policy.md [resources.md]
-        Spec: The created copy of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md [resources.md]
+        Spec: The created version of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md [resources.md]
+        Spec: The created version of test-writing-policy.md is identical in content to the bundled test-writing-policy.md [resources.md]
+        Spec: The created version of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md [resources.md]
+        Spec: The created version of specd-orientation.md is identical in content to the bundled specd-orientation.md [resources.md]
         """
         _run("--create", "--target", str(tmp_path))
         for filename in ALL_RESOURCE_FILES:
@@ -156,7 +158,7 @@ class TestResourcesForce:
     def test_existing_file_blocks_copy_and_exits_1(self, tmp_path):
         """
         Spec: If a document with a name matching a resource that would be created already exists in the target directory, no resources are created [resources.md]
-        Spec: If a document with a name matching one of the three resources already exists in the target directory, it exits with code 1 [resources.md]
+        Spec: If a document with a name matching one of the four resources already exists in the target directory, it exits with code 1 [resources.md]
         """
         (tmp_path / "spec-writing-policy.md").write_text("existing", encoding="utf-8")
         result = _run("--create", "--target", str(tmp_path))
@@ -166,7 +168,7 @@ class TestResourcesForce:
 
     def test_existing_file_warning_format(self, tmp_path):
         """
-        Spec: If a document with a name matching one of the three resources already exists in the target directory, a warning is printed: "\\nThe following files already exist in the target directory:\\n<each existing file name on its own line with "- ">\\nUse --force to overwrite them.\\n" [resources.md]
+        Spec: If a document with a name matching one of the four resources already exists in the target directory, a warning is printed: "\\nThe following files already exist in the target directory:\\n<each existing file name on its own line with "- ">\\nUse --force to overwrite them.\\n" [resources.md]
         """
         (tmp_path / "spec-writing-policy.md").write_text("existing", encoding="utf-8")
         (tmp_path / "test-writing-policy.md").write_text("existing", encoding="utf-8")
@@ -189,7 +191,7 @@ class TestResourcesForce:
 
     def test_force_overwrites_existing(self, tmp_path):
         """
-        Spec: If a document with a name matching one of the three resources already exists in the target directory and the `--force` option is supplied, any existing same-named documents are overwritten [resources.md]
+        Spec: If a document with a name matching one of the four resources already exists in the target directory and the `--force` option is supplied, any existing same-named documents are overwritten [resources.md]
         """
         for filename in ALL_RESOURCE_FILES:
             (tmp_path / filename).write_text("old content", encoding="utf-8")
@@ -223,6 +225,7 @@ class TestResourcesList:
         assert lines[0] == "spec-writing: spec-writing-policy.md"
         assert lines[1] == "test-writing: test-writing-policy.md"
         assert lines[2] == "spec-implementation: spec-implementation-policy.md"
+        assert lines[3] == "specd-orientation: specd-orientation.md"
 
     def test_list_with_other_options_warns_and_exits_1(self):
         """
@@ -246,15 +249,17 @@ class TestResourcesOnly:
         assert (tmp_path / "spec-writing-policy.md").exists()
         assert not (tmp_path / "test-writing-policy.md").exists()
         assert not (tmp_path / "spec-implementation-policy.md").exists()
+        assert not (tmp_path / "specd-orientation.md").exists()
 
     def test_only_each_valid_key(self, tmp_path):
         """
-        Spec: The valid keys for use with `--only` are `spec-writing`, `test-writing`, and `spec-implementation` [resources.md]
+        Spec: The valid keys for use with `--only` are `spec-writing`, `test-writing`, `spec-implementation`, and `specd-orientation` [resources.md]
         """
         key_to_file = {
             "spec-writing": "spec-writing-policy.md",
             "test-writing": "test-writing-policy.md",
             "spec-implementation": "spec-implementation-policy.md",
+            "specd-orientation": "specd-orientation.md",
         }
         for key, filename in key_to_file.items():
             target = tmp_path / key
