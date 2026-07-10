@@ -8,12 +8,12 @@ Usage:
     specd render --watch                    Watch templates and re-render on change
     specd validate                          Validate test/spec compliance
     specd validate --tests PATH             Validate with explicit tests directory
-    specd policies --list                   List available policy keys and filenames
-    specd policies --copy                   Copy all policy files to current directory
-    specd policies --copy -t PATH           Copy all policy files to PATH
-    specd policies --copy --only KEY        Copy one policy file to current directory
-    specd policies --copy --only KEY -t PATH  Copy one policy file to PATH
-    specd policies --copy --force           Overwrite existing files
+    specd resources --list                  List available resource keys and filenames
+    specd resources --create                  Create all resource files at current directory
+    specd resources --create -t PATH          Create all resource files at PATH
+    specd resources --create --only KEY       Create one resource file at current directory
+    specd resources --create --only KEY -t PATH  Create one resource file at PATH
+    specd resources --create --force          Overwrite existing files
 """
 
 import argparse
@@ -75,39 +75,39 @@ def _build_parser():
         help="Path to the tests directory",
     )
 
-    # Policies subcommand
-    policies_parser = subparsers.add_parser(
-        "policies",
-        help="List or copy bundled policy template files",
+    # Resources subcommand
+    resources_parser = subparsers.add_parser(
+        "resources",
+        help="List or create bundled resource files",
         formatter_class=lambda prog: _TrailingNewlineFormatter(prog, width=120),
     )
-    policies_parser.add_argument(
+    resources_parser.add_argument(
         "--list",
         action="store_true",
-        help="List available policy keys and their filenames",
+        help="List available resource keys and their filenames",
     )
-    policies_parser.add_argument(
-        "--copy",
+    resources_parser.add_argument(
+        "--create",
         action="store_true",
-        help="Copy policy files into a directory",
+        help="Create resource files in a directory",
     )
-    policies_parser.add_argument(
+    resources_parser.add_argument(
         "--only",
         metavar="KEY",
-        help="Copy only the named policy (use with --copy)",
+        help="Create only the named resource (use with --create)",
     )
-    policies_parser.add_argument(
+    resources_parser.add_argument(
         "--target",
         metavar="DIR",
-        help="Target directory for --copy (default: current working directory)",
+        help="Target directory for --create (default: current working directory)",
     )
-    policies_parser.add_argument(
+    resources_parser.add_argument(
         "--force",
         action="store_true",
-        help="Overwrite existing files when copying",
+        help="Overwrite existing files when creating",
     )
-    # Store reference so _do_policies can print subcommand help.
-    policies_parser.set_defaults(_subparser=policies_parser)
+    # Store reference so _do_resources can print subcommand help.
+    resources_parser.set_defaults(_subparser=resources_parser)
 
     return parser
 
@@ -182,40 +182,40 @@ def _do_watch(args):
     return 0
 
 
-def _do_policies(args):
+def _do_resources(args):
     import importlib.resources
     from pathlib import Path
 
-    from specd._policies import POLICIES
+    from specd._resources import RESOURCES
 
-    # Options that require --copy
-    if args.target and not args.copy:
-        print("--target can only be used with --copy")
+    # Options that require --create
+    if args.target and not args.create:
+        print("--target can only be used with --create")
         return 1
 
-    if args.force and not args.copy:
-        print("--force can only be used with --copy")
+    if args.force and not args.create:
+        print("--force can only be used with --create")
         return 1
 
-    if args.only and not args.copy:
-        print("--only can only be used with --copy")
+    if args.only and not args.create:
+        print("--only can only be used with --create")
         return 1
 
     # Bare invocation: no flags set.
-    if not args.list and not args.copy:
+    if not args.list and not args.create:
         args._subparser.print_help()
         return 0
 
     # --list (must not be combined with other options)
     if args.list:
-        if args.copy or args.only or args.target or args.force:
+        if args.create or args.only or args.target or args.force:
             print("The --list option can't be combined with other options")
             return 1
-        for key, filename in POLICIES.items():
+        for key, filename in RESOURCES.items():
             print(f"{key}: {filename}")
         return 0
 
-    # --copy
+    # --create
     target = Path(args.target) if args.target else Path.cwd()
 
     if not target.is_dir():
@@ -224,12 +224,12 @@ def _do_policies(args):
         return 1
 
     if args.only:
-        if args.only not in POLICIES:
-            print(f"Unknown policy key: '{args.only}'. Use --list to get the correct keys.")
+        if args.only not in RESOURCES:
+            print(f"Unknown resource key: '{args.only}'. Use --list to get the correct keys.")
             return 1
-        to_copy = {args.only: POLICIES[args.only]}
+        to_copy = {args.only: RESOURCES[args.only]}
     else:
-        to_copy = POLICIES
+        to_copy = RESOURCES
 
     if not args.force:
         conflicts = [
@@ -243,10 +243,10 @@ def _do_policies(args):
             print("Use --force to overwrite them.\n")
             return 1
 
-    policies_dir = importlib.resources.files("specd") / "policies"
+    resources_dir = importlib.resources.files("specd") / "resources"
     created = []
     for filename in to_copy.values():
-        content = (policies_dir / filename).read_bytes()
+        content = (resources_dir / filename).read_bytes()
         (target / filename).write_bytes(content)
         if args.target:
             created.append(str(target / filename))
@@ -291,8 +291,8 @@ def main():
             sys.exit(_do_render(args))
     elif args.command == "validate":
         sys.exit(_do_validate(args))
-    elif args.command == "policies":
-        sys.exit(_do_policies(args))
+    elif args.command == "resources":
+        sys.exit(_do_resources(args))
     else:
         parser.print_help()
         sys.exit(0)

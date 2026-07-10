@@ -1,5 +1,5 @@
 """
-Tests for the `specd policies` command.
+Tests for the `specd resources` command.
 """
 
 import importlib.resources
@@ -9,7 +9,7 @@ from pathlib import Path
 
 SPECD = [sys.executable, "-m", "specd.cli"]
 
-ALL_POLICY_FILES = (
+ALL_RESOURCE_FILES = (
     "spec-writing-policy.md",
     "test-writing-policy.md",
     "spec-implementation-policy.md",
@@ -17,9 +17,9 @@ ALL_POLICY_FILES = (
 
 
 def _run(*args, cwd=None):
-    """Run specd policies with the given arguments and return CompletedProcess."""
+    """Run specd resources with the given arguments and return CompletedProcess."""
     return subprocess.run(
-        SPECD + ["policies"] + list(args),
+        SPECD + ["resources"] + list(args),
         capture_output=True,
         text=True,
         cwd=str(cwd) if cwd else None,
@@ -27,44 +27,44 @@ def _run(*args, cwd=None):
 
 
 def _bundled_content(filename):
-    """Return the bytes content of a bundled policy file."""
-    policies_dir = importlib.resources.files("specd") / "policies"
-    return (policies_dir / filename).read_bytes()
+    """Return the bytes content of a bundled resource file."""
+    resources_dir = importlib.resources.files("specd") / "resources"
+    return (resources_dir / filename).read_bytes()
 
 
-class TestPoliciesSubcommand:
+class TestResourcesSubcommand:
 
-    def test_policies_is_valid_subcommand(self):
+    def test_resources_is_valid_subcommand(self):
         """
-        Spec: `policies` is a valid positional argument to the `specd` command line entrypoint [policies.md]
+        Spec: `resources` is a valid positional argument to the `specd` command line entrypoint [resources.md]
         """
         result = subprocess.run(
-            SPECD + ["policies", "--help"],
+            SPECD + ["resources", "--help"],
             capture_output=True,
             text=True,
         )
         assert result.returncode == 0
 
 
-class TestPoliciesCopy:
+class TestResourcesCopy:
 
     def test_copy_creates_three_files(self, tmp_path):
         """
-        Spec: When the user calls `policies --copy`, three documents are created: spec-writing-policy.md, test-writing-policy.md, spec-implementation-policy.md [policies.md]
+        Spec: When the user calls `resources --create`, three documents are created: spec-writing-policy.md, test-writing-policy.md, spec-implementation-policy.md [resources.md]
         """
-        result = _run("--copy", "--target", str(tmp_path))
+        result = _run("--create", "--target", str(tmp_path))
         assert result.returncode == 0
-        for filename in ALL_POLICY_FILES:
+        for filename in ALL_RESOURCE_FILES:
             assert (tmp_path / filename).exists(), f"{filename} was not created"
 
     def test_copy_file_contents_match_bundled(self, tmp_path):
         """
-        Spec: The created copy of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md [policies.md]
-        Spec: The created copy of test-writing-policy.md is identical in content to the bundled test-writing-policy.md [policies.md]
-        Spec: The created copy of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md [policies.md]
+        Spec: The created copy of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md [resources.md]
+        Spec: The created copy of test-writing-policy.md is identical in content to the bundled test-writing-policy.md [resources.md]
+        Spec: The created copy of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md [resources.md]
         """
-        _run("--copy", "--target", str(tmp_path))
-        for filename in ALL_POLICY_FILES:
+        _run("--create", "--target", str(tmp_path))
+        for filename in ALL_RESOURCE_FILES:
             created = (tmp_path / filename).read_bytes()
             assert created == _bundled_content(filename), (
                 f"{filename} content differs from bundled version"
@@ -72,17 +72,17 @@ class TestPoliciesCopy:
 
     def test_copy_success_message_with_target(self, tmp_path):
         """
-        Spec: When `policies --copy` runs without error, there is a message: `The following were created:\\n<list of created files>` [policies.md]
-        Spec: When `policies --copy` runs without error, the message lists created files as `- <target><filename>` [policies.md]
+        Spec: When `resources --create` runs without error, there is a message: `The following were created:\\n<list of created files>` [resources.md]
+        Spec: When `resources --create` runs without error, the message lists created files as `- <target><filename>` [resources.md]
         """
-        result = _run("--copy", "--target", str(tmp_path))
+        result = _run("--create", "--target", str(tmp_path))
         assert "The following were created:" in result.stdout
         listed = [
             line[2:]
             for line in result.stdout.splitlines()
             if line.startswith("- ")
         ]
-        for filename in ALL_POLICY_FILES:
+        for filename in ALL_RESOURCE_FILES:
             expected_path = str(tmp_path / filename)
             assert expected_path in listed, (
                 f"Expected '- {expected_path}' in output; got: {listed}"
@@ -90,51 +90,51 @@ class TestPoliciesCopy:
 
     def test_copy_success_message_without_target(self, tmp_path):
         """
-        Spec: When `policies --copy` runs without error, there is a message: `The following were created:\\n<list of created files>` [policies.md]
-        Spec: When `policies --copy` runs without error, the message lists created files as `- <target><filename>` [policies.md]
+        Spec: When `resources --create` runs without error, there is a message: `The following were created:\\n<list of created files>` [resources.md]
+        Spec: When `resources --create` runs without error, the message lists created files as `- <target><filename>` [resources.md]
         """
-        result = _run("--copy", cwd=tmp_path)
+        result = _run("--create", cwd=tmp_path)
         assert "The following were created:" in result.stdout
         listed = [
             line[2:]
             for line in result.stdout.splitlines()
             if line.startswith("- ")
         ]
-        for filename in ALL_POLICY_FILES:
+        for filename in ALL_RESOURCE_FILES:
             assert filename in listed, (
                 f"Expected '- {filename}' (bare name, no path) in output; got: {listed}"
             )
 
 
-class TestPoliciesTarget:
+class TestResourcesTarget:
 
     def test_copy_with_target_places_files_at_location(self, tmp_path):
         """
-        Spec: If `policies --copy` is called with the `--target` option, the policies are created at the supplied location [policies.md]
+        Spec: If `resources --create` is called with the `--target` option, the resources are created at the supplied location [resources.md]
         """
         target = tmp_path / "destination"
         target.mkdir()
-        result = _run("--copy", "--target", str(target))
+        result = _run("--create", "--target", str(target))
         assert result.returncode == 0
-        for filename in ALL_POLICY_FILES:
+        for filename in ALL_RESOURCE_FILES:
             assert (target / filename).exists()
 
     def test_copy_without_target_places_files_in_cwd(self, tmp_path):
         """
-        Spec: If `policies --copy` is called without the `--target` option, the policies are created into the cwd [policies.md]
+        Spec: If `resources --create` is called without the `--target` option, the resources are created into the cwd [resources.md]
         """
-        result = _run("--copy", cwd=tmp_path)
+        result = _run("--create", cwd=tmp_path)
         assert result.returncode == 0
-        for filename in ALL_POLICY_FILES:
+        for filename in ALL_RESOURCE_FILES:
             assert (tmp_path / filename).exists()
 
     def test_nonexistent_target_warns_and_exits_1(self, tmp_path):
         """
-        Spec: If the `--target` value supplied does not match an existing directory, there is a warning: `The target directory does not exist. Create it first.\\nThe target was <target sought>` [policies.md]
-        Spec: If the `--target` value supplied does not match an existing directory, it exits with code 1 [policies.md]
+        Spec: If the `--target` value supplied does not match an existing directory, there is a warning: `The target directory does not exist. Create it first.\\nThe target was <target sought>` [resources.md]
+        Spec: If the `--target` value supplied does not match an existing directory, it exits with code 1 [resources.md]
         """
         nonexistent = tmp_path / "no_such_dir"
-        result = _run("--copy", "--target", str(nonexistent))
+        result = _run("--create", "--target", str(nonexistent))
         assert result.returncode == 1
         combined = result.stdout + result.stderr
         assert "The target directory does not exist. Create it first." in combined
@@ -142,35 +142,35 @@ class TestPoliciesTarget:
 
     def test_target_without_copy_warns_and_exits_1(self, tmp_path):
         """
-        Spec: If `--target` is supplied without `--copy` there is a message: "--target can only be used with --copy" [policies.md]
-        Spec: If `--target` is supplied without `--copy`, it exits with code 1 [policies.md]
+        Spec: If `--target` is supplied without `--create` there is a message: "--target can only be used with --create" [resources.md]
+        Spec: If `--target` is supplied without `--create`, it exits with code 1 [resources.md]
         """
         result = _run("--target", str(tmp_path))
         assert result.returncode == 1
         combined = result.stdout + result.stderr
-        assert "--target can only be used with --copy" in combined
+        assert "--target can only be used with --create" in combined
 
 
-class TestPoliciesForce:
+class TestResourcesForce:
 
     def test_existing_file_blocks_copy_and_exits_1(self, tmp_path):
         """
-        Spec: If a document with a name matching a policy that would be created already exists in the target directory, no policies are created [policies.md]
-        Spec: If a document with a name matching one of the three policies already exists in the target directory, it exits with code 1 [policies.md]
+        Spec: If a document with a name matching a resource that would be created already exists in the target directory, no resources are created [resources.md]
+        Spec: If a document with a name matching one of the three resources already exists in the target directory, it exits with code 1 [resources.md]
         """
         (tmp_path / "spec-writing-policy.md").write_text("existing", encoding="utf-8")
-        result = _run("--copy", "--target", str(tmp_path))
+        result = _run("--create", "--target", str(tmp_path))
         assert result.returncode == 1
         assert not (tmp_path / "test-writing-policy.md").exists()
         assert not (tmp_path / "spec-implementation-policy.md").exists()
 
     def test_existing_file_warning_format(self, tmp_path):
         """
-        Spec: If a document with a name matching one of the three policies already exists in the target directory, a warning is printed: "\\nThe following files already exist in the target directory:\\n<each existing file name on its own line with "- ">\\nUse --force to overwrite them.\\n" [policies.md]
+        Spec: If a document with a name matching one of the three resources already exists in the target directory, a warning is printed: "\\nThe following files already exist in the target directory:\\n<each existing file name on its own line with "- ">\\nUse --force to overwrite them.\\n" [resources.md]
         """
         (tmp_path / "spec-writing-policy.md").write_text("existing", encoding="utf-8")
         (tmp_path / "test-writing-policy.md").write_text("existing", encoding="utf-8")
-        result = _run("--copy", "--target", str(tmp_path))
+        result = _run("--create", "--target", str(tmp_path))
         combined = result.stdout + result.stderr
         assert "The following files already exist in the target directory:" in combined
         assert "- spec-writing-policy.md" in combined
@@ -179,43 +179,43 @@ class TestPoliciesForce:
 
     def test_only_existing_selected_file_blocks_copy(self, tmp_path):
         """
-        Spec: If a document with a name matching a policy that would be created already exists in the target directory, no policies are created [policies.md]
+        Spec: If a document with a name matching a resource that would be created already exists in the target directory, no resources are created [resources.md]
         """
-        # A non-selected policy exists — should NOT block --only spec-writing
+        # A non-selected resource exists — should NOT block --only spec-writing
         (tmp_path / "test-writing-policy.md").write_text("existing", encoding="utf-8")
-        result = _run("--copy", "--only", "spec-writing", "--target", str(tmp_path))
+        result = _run("--create", "--only", "spec-writing", "--target", str(tmp_path))
         assert result.returncode == 0
         assert (tmp_path / "spec-writing-policy.md").exists()
 
     def test_force_overwrites_existing(self, tmp_path):
         """
-        Spec: If a document with a name matching one of the three policies already exists in the target directory and the `--force` option is supplied, any existing same-named documents are overwritten [policies.md]
+        Spec: If a document with a name matching one of the three resources already exists in the target directory and the `--force` option is supplied, any existing same-named documents are overwritten [resources.md]
         """
-        for filename in ALL_POLICY_FILES:
+        for filename in ALL_RESOURCE_FILES:
             (tmp_path / filename).write_text("old content", encoding="utf-8")
-        result = _run("--copy", "--force", "--target", str(tmp_path))
+        result = _run("--create", "--force", "--target", str(tmp_path))
         assert result.returncode == 0
-        for filename in ALL_POLICY_FILES:
+        for filename in ALL_RESOURCE_FILES:
             assert (tmp_path / filename).read_bytes() == _bundled_content(filename)
 
     def test_force_without_copy_warns_and_exits_1(self):
         """
-        Spec: If `--force` is supplied without `--copy` there is a message: "--force can only be used with --copy" [policies.md]
-        Spec: If `--force` is supplied without `--copy`, it exits with code 1 [policies.md]
+        Spec: If `--force` is supplied without `--create` there is a message: "--force can only be used with --create" [resources.md]
+        Spec: If `--force` is supplied without `--create`, it exits with code 1 [resources.md]
         """
         result = _run("--force")
         assert result.returncode == 1
         combined = result.stdout + result.stderr
-        assert "--force can only be used with --copy" in combined
+        assert "--force can only be used with --create" in combined
 
 
-class TestPoliciesList:
+class TestResourcesList:
 
     def test_list_output(self):
         """
-        Spec: When `policies --list` is called, the first line output is `spec-writing: spec-writing-policy.md` [policies.md]
-        Spec: When `policies --list` is called, the second line output is  `test-writing: test-writing-policy.md` [policies.md]
-        Spec: When `policies --list` is called, the third line output is `spec-implementation: spec-implementation-policy.md` [policies.md]
+        Spec: When `resources --list` is called, the first line output is `spec-writing: spec-writing-policy.md` [resources.md]
+        Spec: When `resources --list` is called, the second line output is  `test-writing: test-writing-policy.md` [resources.md]
+        Spec: When `resources --list` is called, the third line output is `spec-implementation: spec-implementation-policy.md` [resources.md]
         """
         result = _run("--list")
         assert result.returncode == 0
@@ -226,22 +226,22 @@ class TestPoliciesList:
 
     def test_list_with_other_options_warns_and_exits_1(self):
         """
-        Spec: If `policies --list` is called with any other options, a warning is printed: `The --list option can't be combined with other options` [policies.md]
-        Spec: If `policies --list` is called with any other options, it exits with code 1 [policies.md]
+        Spec: If `resources --list` is called with any other options, a warning is printed: `The --list option can't be combined with other options` [resources.md]
+        Spec: If `resources --list` is called with any other options, it exits with code 1 [resources.md]
         """
-        result = _run("--list", "--copy")
+        result = _run("--list", "--create")
         assert result.returncode == 1
         combined = result.stdout + result.stderr
         assert "The --list option can't be combined with other options" in combined
 
 
-class TestPoliciesOnly:
+class TestResourcesOnly:
 
     def test_only_creates_single_file(self, tmp_path):
         """
-        Spec: If `policies --copy` is called with `--only <policy key>`, only that policy is created [policies.md]
+        Spec: If `resources --create` is called with `--only <resource key>`, only that resource is created [resources.md]
         """
-        result = _run("--copy", "--only", "spec-writing", "--target", str(tmp_path))
+        result = _run("--create", "--only", "spec-writing", "--target", str(tmp_path))
         assert result.returncode == 0
         assert (tmp_path / "spec-writing-policy.md").exists()
         assert not (tmp_path / "test-writing-policy.md").exists()
@@ -249,7 +249,7 @@ class TestPoliciesOnly:
 
     def test_only_each_valid_key(self, tmp_path):
         """
-        Spec: The valid keys for use with `--only` are `spec-writing`, `test-writing`, and `spec-implementation` [policies.md]
+        Spec: The valid keys for use with `--only` are `spec-writing`, `test-writing`, and `spec-implementation` [resources.md]
         """
         key_to_file = {
             "spec-writing": "spec-writing-policy.md",
@@ -259,7 +259,7 @@ class TestPoliciesOnly:
         for key, filename in key_to_file.items():
             target = tmp_path / key
             target.mkdir()
-            result = _run("--copy", "--only", key, "--target", str(target))
+            result = _run("--create", "--only", key, "--target", str(target))
             assert result.returncode == 0, f"--only {key!r} failed: {result.stdout}{result.stderr}"
             assert (target / filename).exists(), (
                 f"Expected {filename} to be created for key {key!r}"
@@ -267,82 +267,82 @@ class TestPoliciesOnly:
 
     def test_only_unknown_key_warns_and_exits_1(self, tmp_path):
         """
-        Spec: If --only is used with an unknown key, a warning is printed: `Unknown policy key: '<key>'. Use --list to get the correct keys.` [policies.md]
-        Spec: If --only is used with an unknown key, it exits with code 1 [policies.md]
+        Spec: If --only is used with an unknown key, a warning is printed: `Unknown resource key: '<key>'. Use --list to get the correct keys.` [resources.md]
+        Spec: If --only is used with an unknown key, it exits with code 1 [resources.md]
         """
-        result = _run("--copy", "--only", "bad-key", "--target", str(tmp_path))
+        result = _run("--create", "--only", "bad-key", "--target", str(tmp_path))
         assert result.returncode == 1
         combined = result.stdout + result.stderr
-        assert "Unknown policy key: 'bad-key'. Use --list to get the correct keys." in combined
+        assert "Unknown resource key: 'bad-key'. Use --list to get the correct keys." in combined
 
     def test_only_with_target(self, tmp_path):
         """
-        Spec: `--only` can be combined with `--target` and `--force` [policies.md]
+        Spec: `--only` can be combined with `--target` and `--force` [resources.md]
         """
         target = tmp_path / "out"
         target.mkdir()
-        result = _run("--copy", "--only", "test-writing", "--target", str(target))
+        result = _run("--create", "--only", "test-writing", "--target", str(target))
         assert result.returncode == 0
         assert (target / "test-writing-policy.md").exists()
 
     def test_only_with_force_overwrites(self, tmp_path):
         """
-        Spec: `--only` can be combined with `--target` and `--force` [policies.md]
+        Spec: `--only` can be combined with `--target` and `--force` [resources.md]
         """
-        policy_file = tmp_path / "spec-writing-policy.md"
-        policy_file.write_text("old content", encoding="utf-8")
+        resource_file = tmp_path / "spec-writing-policy.md"
+        resource_file.write_text("old content", encoding="utf-8")
         result = _run(
-            "--copy", "--only", "spec-writing", "--force", "--target", str(tmp_path)
+            "--create", "--only", "spec-writing", "--force", "--target", str(tmp_path)
         )
         assert result.returncode == 0
-        assert policy_file.read_bytes() == _bundled_content("spec-writing-policy.md")
+        assert resource_file.read_bytes() == _bundled_content("spec-writing-policy.md")
 
     def test_only_without_copy_warns_and_exits_1(self):
         """
-        Spec: If `--only` is supplied without `--copy` there is a message: "--only can only be used with --copy" [policies.md]
-        Spec: If `--only` is supplied without `--copy`, it exits with code 1 [policies.md]
+        Spec: If `--only` is supplied without `--create` there is a message: "--only can only be used with --create" [resources.md]
+        Spec: If `--only` is supplied without `--create`, it exits with code 1 [resources.md]
         """
         result = _run("--only", "spec-writing")
         assert result.returncode == 1
         combined = result.stdout + result.stderr
-        assert "--only can only be used with --copy" in combined
+        assert "--only can only be used with --create" in combined
 
 
-class TestPoliciesHelp:
+class TestResourcesHelp:
 
     def test_help_flag(self):
         """
-        Spec: Calling `policies` with `--help` or `-h` prints help text [policies.md]
-        Spec: Help text includes: `usage: specd policies [-h] [--list] [--copy] [--only KEY] [--target DIR] [--force]\\n\\n` [policies.md]
-        Spec: Help text includes: `  -h, --help` + `show this help message and exit` [policies.md]
-        Spec: Help text includes: `  --list` + `List available policy keys and their filenames` [policies.md]
-        Spec: Help text includes: `  --copy` + `Copy policy files into a directory` [policies.md]
-        Spec: Help text includes: `  --only KEY` + `Copy only the named policy (use with --copy)` [policies.md]
-        Spec: Help text includes: `  --target DIR` + `Target directory for --copy (default: current working directory)` [policies.md]
-        Spec: Help text includes: `  --force` + `Overwrite existing files when copying` [policies.md]
+        Spec: Calling `resources` with `--help` or `-h` prints help text [resources.md]
+        Spec: Help text includes: `usage: specd resources [-h] [--list] [--create] [--only KEY] [--target DIR] [--force]\\n\\n` [resources.md]
+        Spec: Help text includes: `  -h, --help` + `show this help message and exit` [resources.md]
+        Spec: Help text includes: `  --list` + `List available resource keys and their filenames` [resources.md]
+        Spec: Help text includes: `  --create` + `Create resource files in a directory` [resources.md]
+        Spec: Help text includes: `  --only KEY` + `Create only the named resource (use with --create)` [resources.md]
+        Spec: Help text includes: `  --target DIR` + `Target directory for --create (default: current working directory)` [resources.md]
+        Spec: Help text includes: `  --force` + `Overwrite existing files when creating` [resources.md]
         """
         result = _run("--help")
         output = result.stdout + result.stderr
         assert (
-            "usage: specd policies [-h] [--list] [--copy] [--only KEY] [--target DIR] [--force]"
+            "usage: specd resources [-h] [--list] [--create] [--only KEY] [--target DIR] [--force]"
             in output
         )
         assert "-h, --help" in output
         assert "show this help message and exit" in output
         assert "--list" in output
-        assert "List available policy keys and their filenames" in output
-        assert "--copy" in output
-        assert "Copy policy files into a directory" in output
+        assert "List available resource keys and their filenames" in output
+        assert "--create" in output
+        assert "Create resource files in a directory" in output
         assert "--only KEY" in output
-        assert "Copy only the named policy (use with --copy)" in output
+        assert "Create only the named resource (use with --create)" in output
         assert "--target DIR" in output
-        assert "Target directory for --copy (default: current working directory)" in output
+        assert "Target directory for --create (default: current working directory)" in output
         assert "--force" in output
-        assert "Overwrite existing files when copying" in output
+        assert "Overwrite existing files when creating" in output
 
     def test_h_flag(self):
         """
-        Spec: Calling `policies` with `--help` or `-h` prints help text [policies.md]
+        Spec: Calling `resources` with `--help` or `-h` prints help text [resources.md]
         """
         result_h = _run("-h")
         result_help = _run("--help")
@@ -350,9 +350,9 @@ class TestPoliciesHelp:
 
     def test_no_options_prints_help(self):
         """
-        Spec: Calling `policies` without options prints the help text [policies.md]
+        Spec: Calling `resources` without options prints the help text [resources.md]
         """
         result = _run()
         output = result.stdout + result.stderr
         assert result.returncode == 0
-        assert "usage: specd policies" in output
+        assert "usage: specd resources" in output
