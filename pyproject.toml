@@ -23,7 +23,7 @@ specd = "specd.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-specd = ["policies/*.md"]
+specd = ["resources/*.md"]
 
 [tool.specd]
 templates = "specs/templates"

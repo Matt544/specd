@@ -12,8 +12,12 @@ The test-writer will not need to create those spec files; they should exist befo
 ## Rules
 1. Tests refer to spec items from spec files by including a citation in the form:
    `Spec: <the untruncated verbatim spec line item> [the_relevant_file.md]`
+{%- if include_python %}
    - In Python, citations go in the test function's docstring
+{%- endif %}
+{%- if include_js_ts %}
    - In JavaScript/TypeScript, citations go in `//` comments inside the test body
+{%- endif %}
 2. Every item in the specs must be associated with at least one test
 3. Every test must relate to at least one item in the specs
 4. Multiple tests can relate to the same spec item
@@ -43,6 +47,7 @@ specd validate -s path/to/specs --tests path/to/tests
 - write to logs.json (append only)
 - exit 0 on success
 - exits non-zero on error
+{%- if include_python %}
 
 ### Python tests for logging
 ```python
@@ -65,6 +70,8 @@ def test_log_script_w_arg():
     # ...
 # and so on...
 ```
+{%- endif %}
+{%- if include_js_ts %}
 
 ### JavaScript/TypeScript tests for logging
 ```javascript
@@ -79,6 +86,7 @@ test("logs with case_id arg", () => {
 });
 // and so on...
 ```
+{%- endif %}
 
 In this example, the spec item "exit 0 on success" may only need one related test. But the spec item "exits non-zero on error" may have five related tests for five separate error paths. 
 

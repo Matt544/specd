@@ -3,6 +3,7 @@ Tests for the `specd resources` command.
 """
 
 import importlib.resources
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -61,12 +62,14 @@ class TestResourcesCopy:
     def test_copy_file_contents_match_bundled(self, tmp_path):
         """
         Spec: The created version of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md [resources.md]
-        Spec: The created version of test-writing-policy.md is identical in content to the bundled test-writing-policy.md [resources.md]
         Spec: The created version of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md [resources.md]
         Spec: The created version of specd-orientation.md is identical in content to the bundled specd-orientation.md [resources.md]
         """
         _run("--create", "--target", str(tmp_path))
-        for filename in ALL_RESOURCE_FILES:
+        static_resources = [
+            f for f in ALL_RESOURCE_FILES if f != "test-writing-policy.md"
+        ]
+        for filename in static_resources:
             created = (tmp_path / filename).read_bytes()
             assert created == _bundled_content(filename), (
                 f"{filename} content differs from bundled version"
@@ -361,3 +364,199 @@ class TestResourcesHelp:
         output = result.stdout + result.stderr
         assert result.returncode == 0
         assert "usage: specd resources" in output
+
+
+def _bundled_template_text():
+    """Return the raw text of the bundled test-writing-policy.md."""
+    resources_dir = importlib.resources.files("specd") / "resources"
+    return (resources_dir / "test-writing-policy.md").read_text(encoding="utf-8")
+
+
+def _static_paragraphs(template_text):
+    """
+    Split template text on double newlines and return paragraphs that
+    contain no Jinja syntax ({{ }}, {% %}).
+    """
+    jinja_pattern = re.compile(r"\{\{|\}\}|\{%|%\}")
+    paragraphs = template_text.split("\n\n")
+    return [p for p in paragraphs if p.strip() and not jinja_pattern.search(p)]
+
+
+def _write_pyproject_toml(directory, languages):
+    """Write a pyproject.toml with the given languages list under [tool.specd]."""
+    langs = ", ".join(f'"{lang}"' for lang in languages)
+    content = (
+        "[tool.specd]\n"
+        f"languages = [{langs}]\n"
+    )
+    (Path(directory) / "pyproject.toml").write_text(content, encoding="utf-8")
+
+
+def _create_and_read_test_writing_policy(cwd):
+    """
+    Run `specd resources --create` with the given cwd and return the
+    content of the created test-writing-policy.md.
+    """
+    target = Path(cwd) / "output"
+    target.mkdir(exist_ok=True)
+    result = subprocess.run(
+        SPECD + ["resources", "--create", "--target", str(target)],
+        capture_output=True,
+        text=True,
+        cwd=str(cwd),
+    )
+    assert result.returncode == 0, (
+        f"resources --create failed: {result.stdout}{result.stderr}"
+    )
+    return (target / "test-writing-policy.md").read_text(encoding="utf-8")
+
+
+def _create_and_read_test_writing_policy_no_js(cwd):
+    """
+    Run `specd resources --create` in a subprocess that blocks tree_sitter
+    imports (simulating specd[js] not installed), and return the content
+    of the created test-writing-policy.md.
+    """
+    target = Path(cwd) / "output"
+    target.mkdir(exist_ok=True)
+    block_script = (
+        "import sys\n"
+        "sys.modules['tree_sitter'] = None\n"
+        "sys.modules['tree_sitter_javascript'] = None\n"
+        "sys.modules['tree_sitter_typescript'] = None\n"
+        "from specd.cli import main\n"
+        "main()\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", block_script,
+         "resources", "--create", "--target", str(target)],
+        capture_output=True,
+        text=True,
+        cwd=str(cwd),
+    )
+    assert result.returncode == 0, (
+        f"resources --create failed: {result.stdout}{result.stderr}"
+    )
+    return (target / "test-writing-policy.md").read_text(encoding="utf-8")
+
+
+PYTHON_CITATION_RULE = (
+    "- In Python, citations go in the test function's docstring"
+)
+PYTHON_EXAMPLE_HEADING = "### Python tests for logging"
+
+JS_CITATION_RULE = (
+    "- In JavaScript/TypeScript, citations go in `//` comments"
+    " inside the test body"
+)
+JS_EXAMPLE_HEADING = "### JavaScript/TypeScript tests for logging"
+
+
+class TestTestWritingPolicyContent:
+
+    def test_static_content_preserved(self, tmp_path):
+        """
+        Spec: The created version of test-writing-policy.md includes all the static content of the bundled test-writing-policy.md that is unaffected by any jinja syntax [resources.md]
+        """
+        content = _create_and_read_test_writing_policy(tmp_path)
+        template_text = _bundled_template_text()
+        paragraphs = _static_paragraphs(template_text)
+        assert len(paragraphs) > 0, "Expected at least one static paragraph"
+        for paragraph in paragraphs:
+            assert paragraph in content, (
+                f"Static paragraph not found in created file:\n{paragraph}"
+            )
+
+    def test_python_included_when_language_configured(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes `python` under its tool.specd "languages" key, point 1 of the `## Rules` section includes: `- In Python, citations go in the test function's docstring` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes `python` under its tool.specd "languages" key, the file includes `### Python tests for logging` [resources.md]
+        """
+        _write_pyproject_toml(tmp_path, ["python"])
+        content = _create_and_read_test_writing_policy(tmp_path)
+        assert PYTHON_CITATION_RULE in content
+        assert PYTHON_EXAMPLE_HEADING in content
+
+    def test_python_included_by_default_when_no_pyproject_toml(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, point 1 of the `## Rules` section includes `- In Python, citations go in the test function's docstring` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, the file includes `### Python tests for logging` [resources.md]
+        """
+        # No pyproject.toml at all
+        content = _create_and_read_test_writing_policy(tmp_path)
+        assert PYTHON_CITATION_RULE in content
+        assert PYTHON_EXAMPLE_HEADING in content
+
+    def test_python_included_by_default_with_pyproject_toml_but_no_languages(
+        self, tmp_path
+    ):
+        """
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, point 1 of the `## Rules` section includes `- In Python, citations go in the test function's docstring` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, the file includes `### Python tests for logging` [resources.md]
+        """
+        # pyproject.toml exists with [tool.specd] but no languages key
+        content = "[tool.specd]\nspecs = \"specs\"\n"
+        (tmp_path / "pyproject.toml").write_text(content, encoding="utf-8")
+        created = _create_and_read_test_writing_policy(tmp_path)
+        assert PYTHON_CITATION_RULE in created
+        assert PYTHON_EXAMPLE_HEADING in created
+
+    def test_python_excluded_when_not_in_languages(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `python`, point 1 of the `## Rules` section does not include `- In Python, citations go in the test function's docstring` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `python`, the file does not include `### Python tests for logging` [resources.md]
+        """
+        _write_pyproject_toml(tmp_path, ["javascript"])
+        content = _create_and_read_test_writing_policy(tmp_path)
+        assert PYTHON_CITATION_RULE not in content
+        assert PYTHON_EXAMPLE_HEADING not in content
+
+    def test_js_included_when_language_configured_javascript(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes `javascript` or `typescript` under its tool.specd "languages" key, point 1 of the `## Rules` section includes: `- In JavaScript/TypeScript, citations go in `//` comments inside the test body` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes `javascript` or `typescript` under its tool.specd "languages" key, the file includes `### JavaScript/TypeScript tests for logging` [resources.md]
+        """
+        _write_pyproject_toml(tmp_path, ["javascript"])
+        content = _create_and_read_test_writing_policy(tmp_path)
+        assert JS_CITATION_RULE in content
+        assert JS_EXAMPLE_HEADING in content
+
+    def test_js_included_when_language_configured_typescript(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes `javascript` or `typescript` under its tool.specd "languages" key, point 1 of the `## Rules` section includes: `- In JavaScript/TypeScript, citations go in `//` comments inside the test body` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes `javascript` or `typescript` under its tool.specd "languages" key, the file includes `### JavaScript/TypeScript tests for logging` [resources.md]
+        """
+        _write_pyproject_toml(tmp_path, ["typescript"])
+        content = _create_and_read_test_writing_policy(tmp_path)
+        assert JS_CITATION_RULE in content
+        assert JS_EXAMPLE_HEADING in content
+
+    def test_js_included_by_default_when_installed(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are installed, then point 1 of the `## Rules` section includes `- In JavaScript/TypeScript, citations go in `//` comments inside the test body` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are installed, the file includes `### JavaScript/TypeScript tests for logging` [resources.md]
+        """
+        # No pyproject.toml; specd[js] is installed in the dev env
+        content = _create_and_read_test_writing_policy(tmp_path)
+        assert JS_CITATION_RULE in content
+        assert JS_EXAMPLE_HEADING in content
+
+    def test_js_excluded_when_not_in_languages(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `javascript` or `typescript`, point 1 of the `## Rules` section does not include `- In JavaScript/TypeScript, citations go in `//` comments inside the test body` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `javascript` or `typescript`, the file does not include `### JavaScript/TypeScript tests for logging` [resources.md]
+        """
+        _write_pyproject_toml(tmp_path, ["python"])
+        content = _create_and_read_test_writing_policy(tmp_path)
+        assert JS_CITATION_RULE not in content
+        assert JS_EXAMPLE_HEADING not in content
+
+    def test_js_excluded_by_default_when_not_installed(self, tmp_path):
+        """
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are not installed, then point 1 of the `## Rules` section does not include `- In JavaScript/TypeScript, citations go in `//` comments inside the test body` [resources.md]
+        Spec: If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are not installed, the file does not include `### JavaScript/TypeScript tests for logging` [resources.md]
+        """
+        # No pyproject.toml; simulate specd[js] not installed
+        content = _create_and_read_test_writing_policy_no_js(tmp_path)
+        assert JS_CITATION_RULE not in content
+        assert JS_EXAMPLE_HEADING not in content
