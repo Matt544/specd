@@ -63,13 +63,13 @@ CLI functionality related to starter-resources for a project.
 # Content of the created resources
 
 - The created version of spec-writing-policy.md is identical in content to the bundled spec-writing-policy.md
-- The created version of test-writing-policy.md includes all the static content of the bundled test-writing-policy.md that is unaffected by any jinja syntax
 - The created version of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md
-- The created version of specd-orientation.md is identical in content to the bundled specd-orientation.md
+- The created version of test-writing-policy.md includes all the static content of the bundled test-writing-policy.md that is unaffected by any jinja syntax
+- The created version of specd-orientation.md includes all the static content of the bundled specd-orientation.md that is unaffected by any jinja syntax
 
-## Dynamic content in test-writing-policy.md!!
+## Dynamic content in test-writing-policy.md
 
-## Python content included by configuration and by default
+### Python content included by configuration and by default
 
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes `python` under its tool.specd "languages" key, point 1 of the `## Rules` section includes: `- In Python, citations go in the test function's docstring`
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes `python` under its tool.specd "languages" key, the file includes `### Python tests for logging`
@@ -77,12 +77,12 @@ CLI functionality related to starter-resources for a project.
 - If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, point 1 of the `## Rules` section includes `- In Python, citations go in the test function's docstring`
 - If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, the file includes `### Python tests for logging`
 
-## Python content excluded by configuration
+### Python content excluded by configuration
 
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `python`, point 1 of the `## Rules` section does not include `- In Python, citations go in the test function's docstring`
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `python`, the file does not include `### Python tests for logging`
 
-## JS/TS content included by configuration and according to installation
+### JS/TS content included by configuration and according to installation
 
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes `javascript` or `typescript` under its tool.specd "languages" key, point 1 of the `## Rules` section includes: `- In JavaScript/TypeScript, citations go in `//` comments inside the test body`
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes `javascript` or `typescript` under its tool.specd "languages" key, the file includes `### JavaScript/TypeScript tests for logging` 
@@ -90,12 +90,51 @@ CLI functionality related to starter-resources for a project.
 - If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are installed, then point 1 of the `## Rules` section includes `- In JavaScript/TypeScript, citations go in `//` comments inside the test body`
 - If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are installed, the file includes `### JavaScript/TypeScript tests for logging`
 
-## JS/TS content excluded by configuration
+### JS/TS content excluded by configuration
 
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `javascript` or `typescript`, point 1 of the `## Rules` section does not include `- In JavaScript/TypeScript, citations go in `//` comments inside the test body`
 - If test-writing-policy.md will be created and there is a pyproject.toml that includes a tool.specd "languages" key without `javascript` or `typescript`, the file does not include `### JavaScript/TypeScript tests for logging`
 
-## JS/TS content excluded according to installation
+### JS/TS content excluded according to installation
 
 - If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are not installed, then point 1 of the `## Rules` section does not include `- In JavaScript/TypeScript, citations go in `//` comments inside the test body`
 - If test-writing-policy.md will be created and there is not a pyproject.toml that includes a tool.specd "languages" key, and if the `specd[js]` optional dependencies are not installed, the file does not include `### JavaScript/TypeScript tests for logging`
+
+## Dynamic content in specd-orientation.md
+
+### Location of the templates dir
+
+- When pyproject.toml provides a `templates` dir, the rendered specd-orientation.md contains: 'Specs are generated from templates in <the configured `templates` dir + one '/'>'
+- When pyproject.toml does not provide a `templates` dir, the rendered specd-orientation.md contains: 'Specs are generated from templates in <the default `templates` dir>'
+
+- When pyproject.toml provides a `templates` dir, the rendered specd-orientation.md contains: 'Agents should leave the files under <the configured `templates` dir + one '/'> alone'
+- When pyproject.toml does not provide a `templates` dir, the rendered specd-orientation.md contains: 'Agents should leave the files under <the default `templates` dir> alone'
+
+### Location of the specs dir
+
+- When pyproject.toml provides a `specs` dir, the rendered specd-orientation.md contains: 'Canonical specs are under <the configured `specs` dir + one '/'>'.
+- When pyproject.toml does not provide a `specs` dir, the rendered specd-orientation.md contains: 'Canonical specs are under <the default `specs` dir>'.
+
+- When pyproject.toml provides a `specs` dir, the rendered specd-orientation.md contains: 'They are autogenerated into <the configured `specs` dir + one '/'>'
+- When pyproject.toml does not provide a `specs` dir, the rendered specd-orientation.md contains: 'They are autogenerated into <the default `specs` dir>'
+
+- When pyproject.toml provides a `specs` dir, the rendered specd-orientation.md contains: 'Agents only read spec files under <the configured `specs` dir + one '/'>'
+- When pyproject.toml does not provide a `specs` dir, the rendered specd-orientation.md contains: 'Agents only read spec files under <the default `specs` dir>'
+
+- When pyproject.toml provides a `specs` dir, the rendered specd-orientation.md contains: 'Do not edit spec files under <the configured `specs` dir + one '/'>'
+- When pyproject.toml does not provide a `specs` dir, the rendered specd-orientation.md contains: 'Do not edit spec files under <the default `specs` dir>'
+
+### Location of the tests dir
+- When pyproject.toml provides a `tests` dir, the rendered specd-orientation.md contains: 'Tests that `specd` is aware of are found under <the configured `tests` dir + one '/'>'.
+- When pyproject.toml does not provide a `tests` dir, the rendered specd-orientation.md contains: 'Tests that `specd` is aware of are found under <the default `tests` dir>'.
+
+### Location of the resources dir
+
+- When pyproject.toml provides a `resources` dir, the rendered specd-orientation.md contains: '<the configured `resources` dir + one '/' + spec-writing-policy.md> (how to write spec items)'
+- When pyproject.toml does not provide a `resources` dir, the rendered specd-orientation.md contains: '<the default `resources` dir + spec-writing-policy.md> (how to write spec items)'
+
+- When pyproject.toml provides a `resources` dir, the rendered specd-orientation.md contains: '<the configured `resources` dir + one '/' + test-writing-policy.md> (reference format and coverage rules)'
+- When pyproject.toml does not provide a `resources` dir, the rendered specd-orientation.md contains: '<the default `resources` dir + test-writing-policy.md> (reference format and coverage rules)'
+
+- When pyproject.toml provides a `resources` dir, the rendered specd-orientation.md contains: '<the configured `resources` dir + one '/' + spec-implementation-policy.md> (workflow for implementing specs; unenforced)'
+- When pyproject.toml does not provide a `resources` dir, the rendered specd-orientation.md contains: '<the default `resources` dir + spec-implementation-policy.md> (workflow for implementing specs; unenforced)'

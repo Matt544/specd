@@ -29,3 +29,4 @@ specd = ["resources/*.md"]
 templates = "specs/templates"
 specs = "specs/gen"
 tests = "tests"
+languages = ["python"]
