@@ -10,8 +10,7 @@ This policy assumes that:
 The test-writer will not need to create those spec files; they should exist before writing tests.
 
 ## Rules
-1. Tests refer to spec items from spec files by including a citation in the form:
-   `Spec: <the untruncated verbatim spec line item> [the_relevant_file.md]`
+1. Tests refer to spec items from spec files by including a citation in the form: `Spec: <the untruncated verbatim spec line item> [the_relevant_file.md]`
 {%- if include_python %}
    - In Python, citations go in the test function's docstring
 {%- endif %}
@@ -41,6 +40,7 @@ specd validate -s path/to/specs --tests path/to/tests
 `specd validate` checks three things: tests without valid spec citations, spec items without related tests, and phantom citations (citations whose text does not appear verbatim in the named spec file). It exits with code 1 if any violations are found.
 
 ## Example
+
 ### Spec for logging
 - always log timestamp, status, and message
 - optionally accept a command line arg for case_id and script
