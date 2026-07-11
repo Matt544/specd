@@ -183,10 +183,9 @@ def _do_watch(args):
 
 
 def _do_resources(args):
-    import importlib.resources
     from pathlib import Path
 
-    from specd._resources import RESOURCES
+    from specd._resources import RESOURCES, read_resource
 
     # Options that require --create
     if args.target and not args.create:
@@ -243,11 +242,11 @@ def _do_resources(args):
             print("Use --force to overwrite them.\n")
             return 1
 
-    resources_dir = importlib.resources.files("specd") / "resources"
     created = []
     for filename in to_copy.values():
-        content = (resources_dir / filename).read_bytes()
-        (target / filename).write_bytes(content)
+        content = read_resource(filename)
+        # write_bytes to preserve \n line endings on all platforms
+        (target / filename).write_bytes(content.encode("utf-8"))
         if args.target:
             created.append(str(target / filename))
         else:

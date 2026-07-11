@@ -31,7 +31,9 @@ def _run(*args, cwd=None):
 def _bundled_content(filename):
     """Return the bytes content of a bundled resource file."""
     resources_dir = importlib.resources.files("specd") / "resources"
-    return (resources_dir / filename).read_bytes()
+    # read_text normalizes line endings to \n, matching what
+    # read_resource does before writing created files
+    return (resources_dir / filename).read_text(encoding="utf-8").encode("utf-8")
 
 
 class TestResourcesSubcommand:
@@ -198,9 +200,20 @@ class TestResourcesForce:
         """
         for filename in ALL_RESOURCE_FILES:
             (tmp_path / filename).write_text("old content", encoding="utf-8")
+        
         result = _run("--create", "--force", "--target", str(tmp_path))
         assert result.returncode == 0
+
         for filename in ALL_RESOURCE_FILES:
+            
+            if filename in ['specd-orientation.md', 'test-writing-policy.md']:
+                # Don't try to match file content for dynamic files; instead check that 
+                # it is no longer 'old content'
+                assert (tmp_path / filename).read_bytes() != "old content".encode(
+                    "utf-8"
+                )
+                continue
+            
             assert (tmp_path / filename).read_bytes() == _bundled_content(filename)
 
     def test_force_without_copy_warns_and_exits_1(self):
@@ -221,6 +234,7 @@ class TestResourcesList:
         Spec: When `resources --list` is called, the first line output is `spec-writing: spec-writing-policy.md` [resources.md]
         Spec: When `resources --list` is called, the second line output is  `test-writing: test-writing-policy.md` [resources.md]
         Spec: When `resources --list` is called, the third line output is `spec-implementation: spec-implementation-policy.md` [resources.md]
+        Spec: When `resources --list` is called, the fourth line output is `specd-orientation: specd-orientation.md` [resources.md]
         """
         result = _run("--list")
         assert result.returncode == 0

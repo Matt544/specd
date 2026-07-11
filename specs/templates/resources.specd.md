@@ -65,19 +65,18 @@ CLI functionality related to starter-resources for a project.
 - The created version of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md
 - The created version of specd-orientation.md is identical in content to the bundled specd-orientation.md
 
-## Dynamic content in test-writing-policy.md
-
-{% set if_testing_policy = 'If test-writing-policy.md will be created' %}
+## Dynamic content in test-writing-policy.md!!
+{%- set if_testing_policy = 'If test-writing-policy.md will be created' %}
 {% set citation_rule_for_python = "- In Python, citations go in the test function's docstring" %}
 {% set citation_rule_for_js = "- In JavaScript/TypeScript, citations go in `//` comments inside the test body" %}
 {% set not_languages_config = 'there is not a pyproject.toml that includes a tool.specd "languages" key' %}
 {% set python_tests_example_heading = "### Python tests for logging" %}
 {% set js_tests_example_heading = "### JavaScript/TypeScript tests for logging" %}
 
-{% macro config_languages_includes(language) -%}
+{% macro config_languages_includes(language) %}
 there is a pyproject.toml that includes {{language}} under its tool.specd "languages" key
 {%- endmacro %}
-{% macro config_languages_does_not_include(language) -%}
+{% macro config_languages_does_not_include(language) %}
 there is a pyproject.toml that includes a tool.specd "languages" key without {{language}}
 {%- endmacro %}
 

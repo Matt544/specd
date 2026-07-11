@@ -67,9 +67,7 @@ CLI functionality related to starter-resources for a project.
 - The created version of spec-implementation-policy.md is identical in content to the bundled spec-implementation-policy.md
 - The created version of specd-orientation.md is identical in content to the bundled specd-orientation.md
 
-## Dynamic content in test-writing-policy.md
-
-
+## Dynamic content in test-writing-policy.md!!
 
 ## Python content included by configuration and by default
 
