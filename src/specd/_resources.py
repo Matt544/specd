@@ -20,7 +20,7 @@ RESOURCES = {
     "specd-orientation": "specd-orientation.md",
 }
 
-_TEMPLATE_RESOURCES = {"test-writing-policy.md"}
+_TEMPLATE_RESOURCES = {"test-writing-policy.md", "specd-orientation.md"}
 
 
 def _js_deps_installed():
@@ -33,15 +33,25 @@ def _js_deps_installed():
         return False
 
 
+_DIR_DEFAULTS = {
+    "templates": "templates/",
+    "specs": "specs/",
+    "tests": "tests/",
+    "resources": "resources/",
+}
+
+
 def _build_template_context():
     """
-    Compute Jinja template variables for test-writing-policy.md.
+    Compute Jinja template variables for resource templates.
 
-    Uses the project's [tool.specd] languages key when present.
-    Falls back to including Python by default and JS/TS only if
-    the specd[js] optional dependencies are installed.
+    Provides language flags (for test-writing-policy.md) and directory
+    path strings (for specd-orientation.md), all derived from the
+    project's [tool.specd] configuration.
     """
     specd_config, _ = find_pyproject()
+
+    # Language flags
     languages = specd_config.get("languages")
 
     if languages is not None:
@@ -53,9 +63,18 @@ def _build_template_context():
         include_python = True
         include_js_ts = _js_deps_installed()
 
+    # Directory path strings: configured value + "/" or the default
+    dir_vars = {}
+    for key, default in _DIR_DEFAULTS.items():
+        if key in specd_config:
+            dir_vars[f"{key}_dir"] = specd_config[key].rstrip("/") + "/"
+        else:
+            dir_vars[f"{key}_dir"] = default
+
     return {
         "include_python": include_python,
         "include_js_ts": include_js_ts,
+        **dir_vars,
     }
 
 

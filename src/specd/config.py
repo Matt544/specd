@@ -45,14 +45,17 @@ def find_pyproject(start_dir=None):
     return {}, Path.cwd()
 
 
-def resolve_paths(templates=None, specs=None, tests=None, start_dir=None):
+def resolve_paths(
+    templates=None, specs=None, tests=None, resources=None, start_dir=None
+):
     """
-    Resolve the templates, specs, and tests directories.
+    Resolve the templates, specs, tests, and resources directories.
 
     Explicit arguments take priority, then [tool.specd] from
     pyproject.toml, then convention defaults relative to cwd.
 
-    Returns a dict with keys "templates", "specs", "tests", each a Path.
+    Returns a dict with keys "templates", "specs", "tests", "resources",
+    each a Path.
     """
     file_config, project_root = find_pyproject(start_dir)
 
@@ -67,4 +70,5 @@ def resolve_paths(templates=None, specs=None, tests=None, start_dir=None):
         "templates": _resolve(templates, "templates", "templates"),
         "specs": _resolve(specs, "specs", "specs"),
         "tests": _resolve(tests, "tests", "tests"),
+        "resources": _resolve(resources, "resources", "resources"),
     }
