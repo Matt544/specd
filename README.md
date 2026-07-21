@@ -1,54 +1,67 @@
 # SpecD
 
-`specd` (`/spɛk ˈdiː/` or "speck dee") facilitates developing software with LLM agents using a spec-test-matching approach.
+`specd` facilitates developing software with LLM agents using a spec-first and "spec-test-matching" approach. The goal is AI-assisted development that keeps the developer in control of the project for the long term.
 
-It renders Jinja2 spec templates and validate that tests cite spec items.
+## Installation
 
-## Install
+To install from github:
+```
+# TODO
+```
 
-```bash
+To install for local developement:
+```
 pip install -e specd/
 ```
 
-For JavaScript/TypeScript test support (requires tree-sitter):
-
-```bash
+The default installation only supports python tests. For Javascript/Typescript projects, use:
+```
 pip install -e "specd/[js]"
 ```
 
-## Usage
+# TLDR
 
-### Render templates
+The `specd` approach involves three steps for adding a scope of new functionality:
+- write a spec file
+- write a test suite
+- write an implementation
 
-Templates are `*.specd.md` files in the templates directory. Each template is rendered through Jinja2 and written to the specs directory as a `.md` file (e.g., `qa.specd.md` becomes `qa.md`). Rendered files are prefixed with a generated-file marker — do not edit them by hand, as they will be overwritten on the next render.
+The essence of the process is *spec-test matching*: 
+- every test should cite at least one spec line item
+- every spec item should be cited by at least one test
 
-```bash
-specd render
-specd render -t path/to/templates -s path/to/specs
-specd render --watch
+In other words, all specs are tested and tests are limited to the interfaces and behaviour described in specs.
+
+The rules for specs and tests are written into *spec-writing-policy.md* and *test-writing-policy.md*.
+
+# Spec files
+
+The spec file will contain descriptions of some scope of functionality, focusing on interfaces and system behaviour. The descriptions should be presented as an unordered list, where each line item communicates (roughly) one self-contained statement of functionality, which can be referred to independent of other statements and can be tested. 
+
+Here's a short exmaple snippet from the *validate.md* spec for this project:
+```
+# CLI
+- `validate` is a valid positional argument to the `specd` command line entrypoint
+- When the user calls `validate`, a report is printed showing the results of spec-test matching
 ```
 
-### Validate test/spec compliance
+Specs are written into `.md` files and saved under the configured specs directory (see Configuration, below). 
 
-Validation checks three things:
+You can use templates with jinja2 syntax to make the process easier, and then generate specs from those templates using `specd render`. (Add `--watch` for autogeneration.)
 
-- Every test function has at least one `Spec:` citation linking it to a spec item
-- Every spec item in `specs/` is cited by at least one test
-- Every citation resolves to a real item in a real spec file (no phantom references)
+See *spec-writing-policy.md* for specific instructions.
 
-Spec files are `.md` files in the specs directory. Each line starting with `- ` is treated as a spec item.
+# Test files
+
+Tests should cite at least one spec item in their docstrings. In that event, the test should legitimately test the cited spec item. It is okay if more than one test is needed to fully cover functionality described in a spec item; and one test can cover functionality described in more than one spec item. But life may be easier if spec items are narrow enough that they can be adequately tested with just one test.
 
 Tests cite spec items by including a citation in this form:
-
 ```
 Spec: <verbatim spec item text> [<spec filename>]
 ```
 
-### Python tests
-
 In Python, citations go in the test function's docstring:
-
-```python
+```
 def test_log_with_no_args():
     """
     Spec: always log timestamp, status, and message [log.md]
@@ -56,39 +69,102 @@ def test_log_with_no_args():
     ...
 ```
 
-### JavaScript/TypeScript tests
-
 In JS/TS, citations go in `//` comments inside the test body:
-
-```javascript
+```
 test("logs with no args", () => {
   // Spec: always log timestamp, status, and message [log.md]
   ...
 });
 ```
 
-Multiple citations are separate comment lines. Citations work inside `describe()` blocks at any nesting depth. `test()`, `it()`, and their `.skip`/`.only` variants are all supported. Test files must match `*.test.{js,jsx,ts,tsx}`.
+See *test-writing-policy.md* for specific instructions.
 
-Supported frameworks: Jest, Vitest, Mocha, and any framework using the `test()`/`it()`/`describe()` API.
+# Policies/resources
 
-Run validation:
+`specd` provides the following resources, which can be used to guide developers and AI agents on a project:
+- spec-writing-policy.md
+- test-writing-policy.md
+- spec-implementation-policy.md
+- specd-orientation.md
 
-```bash
-specd validate
-specd validate -s path/to/specs --tests path/to/tests
+The policies are largely generic and transferrable between projects, except that the content of *tests-writing-policy.md*  varies slightly depending on whether a project uses python or Javascript (or both). But *specd-orientation.md* is project specific. It's main role is to orient agents (and developers) to how `specd` should be used in a given project context, including the locations of specs, templates, and tests.
+
+# Implementations
+
+The `specd` approach is less opinionated about implementations than specs and tests.
+
+# Configuration
+
+`specd` needs to know where specs, spec tempates, and tests are all located, and what languages the project tests use (only python and JS/TS are supported). You can tell `specd` where these resources are kept using a *pyproject.toml* file. Here's an example from `specd`'s own *pyproject.toml*:
 ```
-
-## Configuration
-
-By default, specd looks for `templates/`, `specs/`, and `tests/` directories relative to the current working directory. You can override these with CLI flags (`-t`, `-s`, `--tests`) or by adding a `[tool.specd]` section to your `pyproject.toml`:
-
-```toml
 [tool.specd]
-templates = "path/to/templates"
-specs = "path/to/specs"
-tests = "path/to/tests"
+templates = "specs/templates"
+specs = "specs/gen"
+tests = "tests"
+languages = ["python"]
 ```
 
-CLI flags take priority over `pyproject.toml`, which takes priority over the defaults.
+The file paths in these values are all relative to the location of the *pyproject.toml* file. This exmaple communicates that templates used to generate specs are under *specs/templates/*; the autogenerated specs are under *specs/gen/*; tests are at *tests/*; and that `specd` should only be concerned with python test files.
 
-Note: `specd validate` reads specs from a single directory. If you use separate directories for templates and generated specs (e.g., `specs/templates/` and `specs/gen/`), hand-written spec files must also be placed in the configured `specs` directory so that validation can find them.
+If directory locations are not explicitly configured, `specd` commands will look for default locations relative the the `cwd`, assuming that:
+- specs are under *specs/*
+- templates are under *templates/*
+- tests are under *tests/*
+
+File locations can also be supplied via the CLI commands using with flags (`--target`, `--source`, `--tests`, etc; use `--help` for details).
+
+# CLI
+
+## `validate`
+
+Run `specd validate` to get a report on compliance with the test-spec-matching rule.
+
+Validation checks three things:
+1. Every test function has at least one `Spec:` citation linking it to a spec item
+2. Every spec item in `specs/` is cited by at least one test
+3. Every citation in a test resolves to a real item in a real spec file (i.e. no "phantom" references)
+
+Spec files are `.md` files in the specs directory. Each line starting with `- ` is treated as a spec item.
+
+Run `specd validate --help` for options to supply override paths to the specs and tests directories.
+
+## `render`
+
+Run `specd render` to spec files from templates.
+
+Templates are `*.specd.md` files in the templates directory. Each template is rendered through Jinja2 and written to the specs directory as a `.md` file (e.g., `qa.specd.md` becomes `qa.md`). Rendered files are prefixed with the following generated-file marker: `<!-- generated by specd -- do not edit -->`. These fiels will be overwritten on the next render.
+
+Use `--watch` to autogenerate new spec files on changes to templates.
+
+Run `specd validate --help` for options to supply override paths to the specs and tests directories.
+
+## `resources`
+
+Run `specd resource --create` to create the policies and specd-orientation.md in the `cwd`. 
+
+Run `specd resource --help` for other commands regarding resources.
+
+# WTF? (What's this for?)
+
+## Benefits
+
+The key benefits of the approach come from spec-test matching. It is the mechanism that tethers code implementations to the specs. The test suite proves what the implementation actually does; and spec-test matching promotes the creation of a test suite that faithfully implements the deveoper's intentions.
+
+Compliance with the `specd` policies:
+1. Prevents drift between specs and implementation, by enforcing the linkage between specs and the test proving the implementation.
+2. Guides the creation of tests, keeping them meaningful and focused on functionality
+3. Supports the development of spec files that can be used to introduce agents to the system's functionality without asking them to read and interpret any code files, limiting complexity and context window bloat
+
+This entails extra work but also encourages discipline (both in human developers and agents) in keeping specs and tests in sync:
+- The test writer must intentionally decide which item in spec a potential test relates to and must include that item in the test docstring. But that extra work encourages the discipline that prevents creating unhelpful tests.
+- Every time an item in spec changes, the test writer has to change the matching item in the tests. But that exercise encourages the test writer to ask if the test is still testing the spec or if the test needs updating, is now out of spec, or is insufficient and should be augmented with new tests.
+
+The habit of validating references between tests and specs also provides a way for test writers to find tests that need to be updated for a change in the spec. I.e. (1) Change the item in spec; (2) run the test suite and see which tests no longer have a matching spec; then (3) check if those tests need substantive changes or augmentation with new tests.
+
+## Limitations
+
+The connection between spec items and actual test functionality is not guaranteed but relies on the test-writers ensuring that a test's implementation matches the spec item it refers to. I.e. a test can cite a spec item but then not test it well or at all. Periodic audits of the code base will be warranted to check for mismatches.
+
+The policy also does not guarantee test coverage. Consider a coverage tool to prevent testing gaps.
+
+While the policy promotes the creation of spec files that will be good resources for agents, they will not replace documentation of code interfaces, which must be provided for separately.
