@@ -168,3 +168,19 @@ The connection between spec items and actual test functionality is not guarantee
 The policy also does not guarantee test coverage. Consider a coverage tool to prevent testing gaps.
 
 While the policy promotes the creation of spec files that will be good resources for agents, they will not replace documentation of code interfaces, which must be provided for separately.
+
+# Jinja tips
+
+Random tips re: jinja, which can be a touch finicky in `specd`'s context:
+- Marcos spead over multiple lines should have a `-` in the closing tag if the result should *not* contain a newline:
+  ```
+  {% macro config_languages_includes(language) %}
+  there is a pyproject.toml that includes {{language}} under its to  specd "languages" key
+  {%- endmacro %}
+  ```
+- To avoid excess newlines in generated files, use `-` in the opening tag to remove the previous newline (i.e. putting the result where the tag was). E.g.:
+  ```
+  # Some heading
+  {%- set if_testing_policy = 'If test-writing-policy.md will bcreated' %}
+  - Some spec item that uses {{ if_testing_policy }}
+  ```
