@@ -6,7 +6,7 @@
 
 To install from github:
 ```
-# TODO
+pip install git+https://github.com/Matt544/specd
 ```
 
 To install for local developement:
@@ -17,6 +17,11 @@ pip install -e specd/
 The default installation only supports python tests. For Javascript/Typescript projects, use:
 ```
 pip install -e "specd/[js]"
+```
+
+Or from github:
+```
+pip install "specd[js] @ git+https://github.com/Matt544/specd.git@main"
 ```
 
 # TLDR
