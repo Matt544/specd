@@ -4,13 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specd"
-version = "0.1.0"
+version = "0.1.1"
 description = "Render Jinja2 spec templates and validate test/spec compliance."
 requires-python = ">=3.10"
 dependencies = [
     "jinja2",
     "watchdog",
+    "tomli; python_version < '3.11'",
 ]
+
 
 [project.optional-dependencies]
 dev = ["pytest"]
